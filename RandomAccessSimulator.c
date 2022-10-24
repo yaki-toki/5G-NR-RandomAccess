@@ -18,6 +18,7 @@ struct UEinfo{
 void initialUE(struct UEinfo *user, int id);
 void activeUE(struct UEinfo *user, int nUE, float pTx, int txTime);
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff);
+int preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int nPreamble, int time);
 
 void timerIncrease(struct UEinfo *user);
 
@@ -50,7 +51,10 @@ int main(int argc, char** argv){
         
         // Preamble collision detection
 
-
+        for(int i = 0; i < nUE; i++){
+            if((UE+i)->active == 1)
+                (UE+i)->msg2Flag = preambleCollision(UE+i, UE, nUE, nPreamble, time);
+        }
 
         // 전송을 시도하는 UE들의 대기시간 증가
         for(int i = 0; i < nUE; i++)
@@ -116,8 +120,28 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
 }
 
 // preamble의 충돌 확인
-void preambleCollision(struct UEinfo *user, int nUE, int nPreamble){
-
+int preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int nPreamble, int time){
+    // MSG 1이 BS에 도달할 때 까지 2 time slot을 기다려야 함
+    // 따라서 전송하는 시점에서 2 time slot이 더해진 현재 time이 동일해야 충돌을 확인할 수 있음
+    if(user->txTime +2 == time && user->active == 1){
+        for(int i = 0; i < nUE; i++){
+            if((UEs+i)->active == 1 && (UEs+i)->idx != user->idx){
+                // preamble 충돌
+                if((UEs+i)->preamble == user->preamble){
+                    return 0;
+                }
+                // preamble이 충돌되지 않은 경우
+                else{
+                    user->active = 2;
+                    return 1;
+                }
+            }
+        }
+    }
+    // 지금 MSG 1을 전송하는 UE가 아닌경우
+    else{
+        return 0;
+    }
 }
 
 void timerIncrease(struct UEinfo *user){
