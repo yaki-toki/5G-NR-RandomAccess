@@ -27,9 +27,11 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff);
 void timerIncrease(struct UEinfo *user);
 int successUEs(struct UEinfo *user, int nUE);
 
+int collisionPreambles = 0;
+
 int main(int argc, char** argv){
 
-    int nUE = 10000;
+    int nUE = 30000;
     struct UEinfo *UE;
     UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
@@ -41,54 +43,70 @@ int main(int argc, char** argv){
     }
     
     int time;
-    float pTx = 0.1; // 10 %
+    float pTx = 0.01; // 10 %
     int maxTime = 60000; // 60s to ms
 
+    int nSuccessUE;
+
     for(time = 0; time < maxTime; time++){
-        // MSG 1의 전송을 시도하는 UE들을 결정
-        for(int i = 0; i < nUE; i++){
-            if((UE+i)->msg4Flag != 1 && (UE+i)->msg2Flag != 1){
-                activeUE(UE+i, nUE, pTx, time);
-            }
-        }
-        
-        // MSG 1을 전송하는 UE들이 preamble을 선택
-        for(int i = 0; i < nUE; i++){
-            if((UE+i)->active == 1){
-                selectPreamble(UE+i, nPreamble, time, backoffIndicator);
-            }
-        }
-        
-        // Preamble collision detection
-        for(int i = 0; i < nUE; i++){
-            if((UE+i)->active == 1 && (UE+i)->txTime + 2 == time){
-                preambleCollision(UE+i, UE, nUE, nPreamble, time);
-            }
-        }
 
-        // MSG 3 request
         for(int i = 0; i < nUE; i++){
-            if((UE+i)->active == 2 && (UE+i)->txTime+2 == time){
-                requestResourceAllocation(UE+i, time, backoffIndicator);
+            if((UE+i)->msg4Flag != 1){
+                // MSG 1의 전송을 시도하는 UE들을 결정
+                if((UE+i)->msg2Flag != 1){
+                    activeUE(UE+i, nUE, pTx, time);
+                }
+
+                // MSG 1을 전송하는 UE들이 preamble을 선택
+                if((UE+i)->active == 1){
+                    selectPreamble(UE+i, nPreamble, time, backoffIndicator);
+                }
+
+                // Preamble collision detection
+                if((UE+i)->active == 1 && (UE+i)->txTime + 2 == time){
+                    preambleCollision(UE+i, UE, nUE, nPreamble, time);
+                }
+
+                // MSG 3 request
+                if((UE+i)->active == 2 && (UE+i)->txTime+2 == time){
+                    requestResourceAllocation(UE+i, time, backoffIndicator);
+                }
+
+                // 전송을 시도하는 UE들의 대기시간 증가
+                if((UE+i)->active != 0)
+                    timerIncrease(UE+i);
             }
+            
         }
-
-        // 전송을 시도하는 UE들의 대기시간 증가
-        for(int i = 0; i < nUE; i++)
-            timerIncrease(UE+i);
-
-        // if(time == 8){
-        //     break;
-        // }
-
-        if(successUEs(UE, nUE) == nUE){
+        nSuccessUE = successUEs(UE, nUE);
+        if(nSuccessUE == nUE){
             break;
         }
     }
 
+    float averageDelay = 0;
+    int failedUEs = 0;
+    int preambleTxCount = 0;
+
+    for(int i = 0; i < nUE; i++){
+        if((UE+i)->msg4Flag == 0){
+            failedUEs++;
+        }else{
+            averageDelay += (float)(UE+i)->timer;
+            preambleTxCount += (UE+i)->preambleTxCounter;
+        }
+    }
+
+    printf("Total success time: %dms\n", time);
+    printf("Number of succeed UEs: %d\n", nSuccessUE);
+    printf("Number of failed UEs: %d\n", failedUEs);
+    printf("Number of collision preambles: %lf\n", (float)collisionPreambles/(float)nSuccessUE);
+    printf("Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+    printf("Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
+
     FILE *fp;
     char fileBuff[1000];
-    fp = fopen("Results.txt", "w");
+    fp = fopen("Results.txt", "w+");
 
     for(int i = 0; i < nUE; i++){
         // printf("Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
@@ -117,14 +135,6 @@ int main(int argc, char** argv){
 };
     */
 
-    float averageDelay = 0;
-
-    for(int i = 0; i < nUE; i++){
-        averageDelay += (float)(UE+i)->timer;
-    }
-
-    printf("Total success time: %dms\n", time);
-    printf("Average delay: %lfms\n", averageDelay/nUE);
 
     return 0;
 }
@@ -200,6 +210,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int nPr
                     // preamble 충돌
                     if((UEs+i)->preamble == user->preamble){
                         check = 0;
+                        collisionPreambles++;
                     }
                 }
                 
