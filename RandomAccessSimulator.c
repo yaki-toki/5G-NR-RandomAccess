@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <memory.h>
+#include <string.h>
 #include <math.h>
 #include <time.h>
 
@@ -24,6 +26,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int nPr
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff);
 void timerIncrease(struct UEinfo *user);
 int successUEs(struct UEinfo *user, int nUE);
+
 int main(int argc, char** argv){
 
     int nUE = 10000;
@@ -83,10 +86,20 @@ int main(int argc, char** argv){
         }
     }
 
-    // for(int i = 0; i < nUE; i++){
-    //     printf("Idx: %04d | Timer: %04d | Active: %d | txTime: %04d | Preamble: %02d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
-    //     (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->preamble, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
-    // }
+    FILE *fp;
+    char fileBuff[1000];
+    fp = fopen("Results.txt", "w");
+
+    for(int i = 0; i < nUE; i++){
+        // printf("Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
+        // (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->preamble, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
+        sprintf(fileBuff, "Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
+        (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->preamble, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
+
+        fputs(fileBuff, fp);
+    }
+
+    fclose(fp);
 
     /*
     struct UEinfo{
@@ -157,11 +170,10 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
                     user->preamble = rand() % nPreamble;
                     // preamble 전송 횟수
                     user->preambleTxCounter++;
-
+                    // 최대 전송 횟수를 0으로 초기화
                     user->maxRarCounter = 0;
-
                     // 일단 다음 backoff까지 대기
-                    user->txTime = time + (rand() % backoff) + 2;
+                    user->txTime = time + (rand() % backoff) + 1;
                 }else{
                     // 최대 전송 횟수가 아닌경우 maximum rar counter를 증가
                     user->maxRarCounter++;
@@ -215,7 +227,7 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff){
                 user->active = 0;
             }else{
                 // 10%의 확률로 MSG 3-4 실패
-                user->txTime = time + (rand() % backoff) + 2;
+                user->txTime = time + (rand() % backoff) + 1;
             }
         }else{
             initialUE(user, user->idx);
