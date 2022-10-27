@@ -30,8 +30,8 @@ int successUEs(struct UEinfo *user, int nUE);
 int collisionPreambles = 0;
 
 int main(int argc, char** argv){
-
-    int nUE = 30000;
+    srand(2022);    // Fix random seed
+    int nUE = 20000;
     struct UEinfo *UE;
     UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
@@ -49,11 +49,14 @@ int main(int argc, char** argv){
     int nSuccessUE;
 
     for(time = 0; time < maxTime; time++){
-
+        
+        // Time t시점에서의 UE들의 상태를 확인
         for(int i = 0; i < nUE; i++){
+            // Random access에 성공한 UE들은 제외 시킴
             if((UE+i)->msg4Flag != 1){
-                // MSG 1의 전송을 시도하는 UE들을 결정
-                if((UE+i)->msg2Flag != 1){
+                // 아직 MSG 1을 시도하지 않은 상태 active 0
+                // 상태가 처음 바뀌면 0이 되는 경우는 RA를 선택하는 경우밖에 없음
+                if((UE+i)->msg2Flag != 1 && (UE+i)->active == 0){
                     activeUE(UE+i, nUE, pTx, time);
                 }
 
@@ -106,7 +109,9 @@ int main(int argc, char** argv){
 
     FILE *fp;
     char fileBuff[1000];
-    fp = fopen("Results.txt", "w+");
+    char fileName[500];
+    sprintf(fileName, "Results_UE%d.txt", nUE);
+    fp = fopen(fileName, "w+");
 
     for(int i = 0; i < nUE; i++){
         // printf("Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
@@ -116,6 +121,19 @@ int main(int argc, char** argv){
 
         fputs(fileBuff, fp);
     }
+
+    sprintf(fileBuff, "Total success time: %dms\n", time);
+    fputs(fileBuff, fp);
+    sprintf(fileBuff, "Number of succeed UEs: %d\n", nSuccessUE);
+    fputs(fileBuff, fp);
+    sprintf(fileBuff, "Number of failed UEs: %d\n", failedUEs);
+    fputs(fileBuff, fp);
+    sprintf(fileBuff, "Number of collision preambles: %lf\n", (float)collisionPreambles/(float)nSuccessUE);
+    fputs(fileBuff, fp);
+    sprintf(fileBuff, "Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+    fputs(fileBuff, fp);
+    sprintf(fileBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
+    fputs(fileBuff, fp);
 
     fclose(fp);
 
@@ -149,9 +167,11 @@ void initialUE(struct UEinfo *user, int id){
 
 void activeUE(struct UEinfo *user, int nUE, float pTx, int txTime){
     float p = (float)rand() / (float)RAND_MAX;
-    if(p < pTx && user->active == 0 && user->msg2Flag != 1){
+    if(p < pTx){
+        // MSG 1 전송을 시도하는 상태
         user->active = 1;
-        user->txTime = txTime;
+        // 지금 시점을 전송하는 시점으로 기준
+        user->txTime = txTime+1;
         user->timer = 0;
         user->msg2Flag = 0;
     }
