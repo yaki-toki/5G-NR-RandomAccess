@@ -31,7 +31,7 @@ int collisionPreambles = 0;
 
 int main(int argc, char** argv){
     srand(2022);    // Fix random seed
-    int nUE = 20000;
+    int nUE = 10000;
     struct UEinfo *UE;
     UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
@@ -43,7 +43,7 @@ int main(int argc, char** argv){
     }
     
     int time;
-    float pTx = 0.01; // 10 %
+    float pTx = 0.1; // 10 %
     int maxTime = 60000; // 60s to ms
 
     int nSuccessUE;
@@ -79,13 +79,14 @@ int main(int argc, char** argv){
                 if((UE+i)->active != 0)
                     timerIncrease(UE+i);
             }
-            
         }
         nSuccessUE = successUEs(UE, nUE);
         if(nSuccessUE == nUE){
             break;
         }
     }
+
+    printf("-------- Result ---------\n");
 
     float averageDelay = 0;
     int failedUEs = 0;
@@ -231,6 +232,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int nPr
                     if((UEs+i)->preamble == user->preamble){
                         check = 0;
                         collisionPreambles++;
+                        
                     }
                 }
                 
@@ -252,16 +254,18 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff){
     if(user->txTime+2 == time){    
         if(user->connectionRequest < 48){
             float p = (float)rand() / (float)RAND_MAX;
-            if(p > 0.1){
+            if(p > 0.01){
                 // 90%의 확률로 MSG 3-4 성공
                 user->msg4Flag = 1;
                 user->active = 0;
             }else{
+                // printf("MSG3 Fail %d\n", user->idx);
                 // 10%의 확률로 MSG 3-4 실패
-                user->txTime = time + (rand() % backoff) + 1;
+                user->txTime = time + 1; //(rand() % backoff) + 1;
             }
         }else{
             initialUE(user, user->idx);
+            user->active = 1;
         }
     }
 }

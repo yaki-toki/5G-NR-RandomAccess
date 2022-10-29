@@ -1,0 +1,26 @@
+Idx: 0 | Timer: 7 | Active: 0 | txTime: 5 | Preamble: 15 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 1 | Timer: 7 | Active: 0 | txTime: 8 | Preamble: 10 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 2 | Timer: 7 | Active: 0 | txTime: 27 | Preamble: 52 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 3 | Timer: 7 | Active: 0 | txTime: 43 | Preamble: 43 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 4 | Timer: 7 | Active: 0 | txTime: 12 | Preamble: 33 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 5 | Timer: 7 | Active: 0 | txTime: 12 | Preamble: 5 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 6 | Timer: 7 | Active: 0 | txTime: 8 | Preamble: 32 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 7 | Timer: 7 | Active: 0 | txTime: 30 | Preamble: 50 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 8 | Timer: 7 | Active: 0 | txTime: 11 | Preamble: 7 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 9 | Timer: 7 | Active: 0 | txTime: 9 | Preamble: 46 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 10 | Timer: 7 | Active: 0 | txTime: 11 | Preamble: 33 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 11 | Timer: 10 | Active: 0 | txTime: 26 | Preamble: 53 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 2 | MSG 4 Flag: 1
+Idx: 12 | Timer: 7 | Active: 0 | txTime: 11 | Preamble: 40 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 13 | Timer: 7 | Active: 0 | txTime: 5 | Preamble: 57 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 14 | Timer: 7 | Active: 0 | txTime: 5 | Preamble: 21 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 15 | Timer: 7 | Active: 0 | txTime: 21 | Preamble: 51 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 16 | Timer: 7 | Active: 0 | txTime: 19 | Preamble: 49 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 17 | Timer: 7 | Active: 0 | txTime: 18 | Preamble: 39 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 18 | Timer: 7 | Active: 0 | txTime: 52 | Preamble: 61 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Idx: 19 | Timer: 7 | Active: 0 | txTime: 11 | Preamble: 53 | RAR window: 3 | Max RAR: 0 | Preamble reTx: 1 | MSG 2 Flag: 1 | ConnectRequest: 1 | MSG 4 Flag: 1
+Total success time: 54ms
+Number of succeed UEs: 20
+Number of failed UEs: 0
+Number of collision preambles: 0.000000
+Average preamble tx count: 1.000000
+Average delay: 7.150000ms
