@@ -1,6 +1,0 @@
-Total simulation time: 543ms
-Number of succeed UEs: 20000
-Number of failed UEs: 0
-Number of collision preambles: 0.059762
-Average preamble tx count: 1.040800
-Average delay: 7.300650ms
