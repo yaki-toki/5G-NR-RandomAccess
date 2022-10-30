@@ -2,14 +2,19 @@
 #include <stdlib.h>
 #include <time.h>
 #define SIZE 60000
-
+void loopTest();
 int main(){
-    for(int i = 0; i < 100; i++){
-        if(i % 5 == 1){
-            printf("%d\n", i);
+    loopTest();
+    return 0;
+}
+
+void loopTest(){
+    for(int i = 0; i < 10; i++){
+        printf("%d\n",i);
+        if(i == 5){
+            return;
         }
     }
-    return 0;
 }
 
 // double uniform();
