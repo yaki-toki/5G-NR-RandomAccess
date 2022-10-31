@@ -17,11 +17,11 @@ struct UEinfo{
     int msg2Flag;           // MSG 1-2 성공 여부
     int connectionRequest;  // MSG 3 타이머 현재는 48로 설정
     int msg4Flag;           // MSG 3-4 성공 여부 (결론 RA 성공)
-    int preambleChange;
+    int preambleChange;     // 성공 할 때 까지 preamble 몇 번 바꿨는지
+    int raFailed;           // MSG 2 max count 되면 그냥 실패
 };
 
 void initialUE(struct UEinfo *user, int id);
-void activeUE(struct UEinfo *user, float pTx, int txTime);
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff);
 void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff);
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble);
@@ -29,14 +29,14 @@ void timerIncrease(struct UEinfo *user);
 int successUEs(struct UEinfo *user, int nUE);
 
 int collisionPreambles = 0;
+int totalPreambleTxop = 0;
 
 int main(int argc, char** argv){
     srand(2022);    // Fix random seed
     
-    // for(int n = 10000; n <= 10000; n+=10000){
-    // printf("%d\n", n);
+    for(int n = 10000; n <= 100000; n+=10000){
  
-    int nUE = 10000;
+    int nUE = n;
     struct UEinfo *UE;
     UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
@@ -48,32 +48,54 @@ int main(int argc, char** argv){
     }
     
     int time;
-    float pTx = 0.9; // 10 %
+    float pTx = 0.999; // 10 %
     int maxTime = 60000; // 60s to ms
+
+    int accessTime = 5; // 1, 6ms마다 접근
+    int nAccessUE = ceil((float)n * (float)accessTime * 1.0/(float)maxTime);
+
+    if(nAccessUE == 0){
+        nAccessUE = 1;
+    }
+
+    int remainingUE = n;
+
+
+    printf("-------- %05d Result ---------\n", nUE);
+    printf("%d\n", nAccessUE);
 
     int nSuccessUE;
     int activeCheck = 0;
 
     for(time = 0; time < maxTime; time++){
         
+        
+        if(activeCheck <= nUE && time % accessTime == 1){
+            activeCheck += nAccessUE;
+            // printf("%d\n", activeCheck);
+            for(int i = 0; i <= activeCheck; i++){
+                if((UE+i)->active == -1){
+                    // MSG 1 전송을 시도하는 상태
+                    (UE+i)->active = 1;
+                    // 지금 시점을 전송하는 시점으로 기준
+                    (UE+i)->txTime = time+1;
+                    (UE+i)->timer = 0;
+                    (UE+i)->msg2Flag = 0;
+                }
+            }
+        }
+
         // Time t시점에서의 UE들의 상태를 확인
         for(int i = 0; i < nUE; i++){
             // Random access에 성공한 UE들은 제외 시킴
-            if((UE+i)->msg4Flag == 0){
-                // 아직 MSG 1을 시도하지 않은 상태 active 0
-                // 상태가 처음 바뀌면 0이 되는 경우는 RA를 선택하는 경우밖에 없음
-                if(time % 5 == 1){
-                    if((UE+i)->msg2Flag != 1 && (UE+i)->active == 0){
-                        activeUE(UE+i, pTx, time);
-                    }
-                }
+            if((UE+i)->msg4Flag == 0 && (UE+i)->raFailed != -1){
 
                 if((UE+i)->active == 1 && (UE+i)->msg2Flag == 0){
                     // MSG 1을 전송하는 UE들이 preamble을 선택
                     selectPreamble(UE+i, nPreamble, time, backoffIndicator);
 
                     // Preamble collision detection
-                    if((UE+i)->txTime + 2 == time){
+                    if((UE+i)->txTime + 2 == time && (UE+i)->txTime != -1){
                         int checkPreambleNumber = (UE+i)->preamble;
                         preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator);
                     }
@@ -85,7 +107,7 @@ int main(int argc, char** argv){
                 }
 
                 // 전송을 시도하는 UE들의 대기시간 증가
-                if((UE+i)->active != 0)
+                if((UE+i)->active > 0 && (UE+i)->msg4Flag == 0)
                     timerIncrease(UE+i);
             }
         }
@@ -95,7 +117,6 @@ int main(int argc, char** argv){
         }
     }
 
-    printf("-------- %05d Result ---------\n", nUE);
 
     float averageDelay = 0;
     int failedUEs = 0;
@@ -122,18 +143,24 @@ int main(int argc, char** argv){
     FILE *fp;
     char resultBuff[1000];
     char fileNameResult[500];
-    sprintf(fileNameResult, "UE%05d_Results.txt", nUE);
+    sprintf(fileNameResult, "./2_SimulationResults/2_Exclude_msg2_failures_UE%05d_Results.txt", nUE);
     fp = fopen(fileNameResult, "w+");
-    
+
+    sprintf(resultBuff, "Number of UEs: %d\n", nUE);
+    fputs(resultBuff, fp);
     sprintf(resultBuff, "Total simulation time: %dms\n", time);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Number of succeed UEs: %d\n", nSuccessUE);
     fputs(resultBuff, fp);
+    sprintf(resultBuff, "Success probability: %lf\n", (float)nSuccessUE/(float)nUE);
+    fputs(resultBuff, fp);
     sprintf(resultBuff, "Number of failed UEs: %d\n", failedUEs);
+    fputs(resultBuff, fp);
+    sprintf(resultBuff, "Fail probability:: %lf\n", (float)failedUEs/(float)nUE);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
     fputs(resultBuff, fp);
@@ -141,7 +168,7 @@ int main(int argc, char** argv){
     FILE *fp_l;
     char logBuff[1000];
     char fileNameResultLog[500];
-    sprintf(fileNameResultLog, "UE%05d_Logs.txt", nUE);
+    sprintf(fileNameResultLog, "./2_SimulationResults/2_Exclude_msg2_failures_UE%05d_Logs.txt", nUE);
     fp_l = fopen(fileNameResultLog, "w+");
 
     for(int i = 0; i < nUE; i++){
@@ -170,29 +197,17 @@ int main(int argc, char** argv){
     int connectionRequest;  // MSG 3 타이머 현재는 48로 설정
     int msg4Flag;           // MSG 3-4 성공 여부 (결론 RA 성공)
     */
-   //}
+   }
 
     return 0;
 }
 
 void initialUE(struct UEinfo *user, int id){
     user->idx = id;
-    user->active = 0;
+    user->timer = -1;
+    user->active = -1;
     user->txTime = -1;
     user->preamble = -1;
-    user->timer = -1;
-}
-
-void activeUE(struct UEinfo *user, float pTx, int txTime){
-    float p = (float)rand() / (float)RAND_MAX;
-    if(p > pTx){
-        // MSG 1 전송을 시도하는 상태
-        user->active = 1;
-        // 지금 시점을 전송하는 시점으로 기준
-        user->txTime = txTime+1;
-        user->timer = 0;
-        user->msg2Flag = 0;
-    }
 }
 
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
@@ -202,16 +217,13 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->preamble = tmp;
         user->rarWindow = 0;
         user->maxRarCounter = 0;
-        user->preambleTxCounter = 1;
+        user->preambleTxCounter = 0;
         user->preambleChange = 1;
     }else{
         user->rarWindow++;
         if(user->rarWindow >= 5){
 
             user->txTime = time + (rand() % backoff)+2;
-
-            // preamble 전송 횟수
-            user->preambleTxCounter++;
 
             // RAR window를 1 증가
             user->rarWindow = 0;
@@ -221,6 +233,10 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
 
             // 지금 preamble의 전송 횟수가 최대인 경우
             if(user->maxRarCounter >= 10){
+                
+                // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
+                user->raFailed = -1;
+
                 // preamble을 변경하고 backoff만큼 대기
                 user->preamble = rand() % nPreamble;
                 
@@ -251,35 +267,19 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         }
     }
     if(check == 1){
+        totalPreambleTxop++;
+        // preamble 전송 횟수
+        user->preambleTxCounter++;
         user->active = 2;
         user->txTime = time + 2;
         user->connectionRequest = 0;
         user->msg2Flag = 1;
     }else{
+        // totalPreambleTxop += check;
         collisionPreambles += check;
         for(int i = 0; i <= check; i++){
             (UEs+userIdx[i])->rarWindow = 5;
-            // (UEs+userIdx[i])->txTime = time+ (rand() % backoff)+3;
-
-            // // preamble 전송 횟수
-            // (UEs+userIdx[i])->preambleTxCounter++;
-
-            // // RAR window를 1 증가
-            // (UEs+userIdx[i])->rarWindow = 0;
-
-            // // 최대 전송 횟수를 1 증가
-            // (UEs+userIdx[i])->maxRarCounter++;
-
-            // // 지금 preamble의 전송 횟수가 최대인 경우
-            // if((UEs+userIdx[i])->maxRarCounter >= 10){
-            //     // preamble을 변경하고 backoff만큼 대기
-            //     (UEs+userIdx[i])->preamble = rand() % nPreamble;
-                
-            //     // 최대 전송 횟수를 0으로 초기화
-            //     (UEs+userIdx[i])->maxRarCounter = 0;
-
-            //     (UEs+userIdx[i])->preambleChange++;
-            // }
+            (UEs+userIdx[i])->preambleTxCounter++;
         }
     }
     return;
@@ -287,43 +287,28 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
 
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble){
     user->connectionRequest++;
-    if(user->txTime+2 == time){    
-        if(user->connectionRequest < 48){
-            float p = (float)rand() / (float)RAND_MAX;
-            if(p > 0.1){
-                // 90%의 확률로 MSG 3-4 성공
-                user->msg4Flag = 1;
-                user->active = 0;
-            }else{
-                // printf("MSG3 Fail %d\n", user->idx);
-                // 10%의 확률로 MSG 3-4 실패
-                user->txTime = time + 1; //(rand() % backoff) + 1;
-            }
+    if(user->connectionRequest < 48){
+        float p = (float)rand() / (float)RAND_MAX;
+        if(p > 0.1){
+            // 90%의 확률로 MSG 3-4 성공
+            user->msg4Flag = 1;
+            user->active = 0;
         }else{
-            user->active = 1;
-            user->txTime = time + (rand() % backoff) + 1;
-            // user->preamble = rand() % nPreamble;
-            user->msg2Flag = 0;
-            user->rarWindow = 0;
-            user->maxRarCounter = 0;
+            // printf("MSG3 Fail %d\n", user->idx);
+            // 10%의 확률로 MSG 3-4 실패
+            user->txTime = time + 1; //(rand() % backoff) + 1;
         }
+    }else{
+        user->active = 1;
+        user->txTime = time + (rand() % backoff) + 2;
+        user->preamble = rand() % nPreamble;
+        user->msg2Flag = 0;
+        user->rarWindow = 0;
+        user->maxRarCounter = 0;
+        user->preambleTxCounter++;
     }
 }
-    /*
-    struct UEinfo{
-    int idx;                // UE 식별자
-    int timer;              // UE별 타이머 (최종 RA 성공까지 걸리는 딜레이)
-    int active;             // 현재 전송 상태 (Not active: 0, MSG 1-2: 1, MSG 3-4: 2)
-    int txTime;             // MSG 전송 시간
-    int preamble;           // 선택하는 preamble
-    int rarWindow;          // RAR window 현재는 5로 설정
-    int maxRarCounter;      // 최대 RAR window의 대기 횟수 현재는 10
-    int preambleTxCounter;  // Preamble을 변경하여 재전송한 횟수
-    int msg2Flag;           // MSG 1-2 성공 여부
-    int connectionRequest;  // MSG 3 타이머 현재는 48로 설정
-    int msg4Flag;           // MSG 3-4 성공 여부 (결론 RA 성공)
-};
-    */
+
 void timerIncrease(struct UEinfo *user){
     if(user->active != 0)
         user->timer++;
