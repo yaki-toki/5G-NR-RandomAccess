@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include <time.h> 
 
 #define betaF 0.0165
@@ -9,9 +10,18 @@ float beta_dist(float a, float b, float x);
 int uniform_distribution(int rangeLow, int rangeHigh);
 
 int main(){
-    for(int i = 0; i < 20; i++){
-        printf("%lf\n", beta_dist(3, 4, (float)rand() / (float)RAND_MAX));
+    FILE *fp_l;
+    char logBuff[1000];
+    char fileNameResultLog[500];
+    sprintf(fileNameResultLog, "./distribution.txt");
+    fp_l = fopen(fileNameResultLog, "w+");
+
+    for(int i = 0; i < 10000; i++){
+        sprintf(logBuff, "%lf\n", beta_dist(3, 4, (float)i/10000.0));
+        fputs(logBuff, fp_l);
+        printf("%lf\n", beta_dist(3, 4, (float)i/10000.0));
     }
+    fclose(fp_l);
     return 0;
 }
 

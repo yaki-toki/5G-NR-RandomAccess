@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <time.h> 
+
+#define betaF 0.0165
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <memory.h>
 #include <string.h>
 #include <math.h>
 #include <time.h>
+
+#define betaF 0.0165
 
 struct UEinfo{
     int idx;                // UE 식별자
@@ -31,6 +41,7 @@ int successUEs(struct UEinfo *user, int nUE);
 
 void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float averageDelay);
 void saveResult(int nUE, struct UEinfo *UE);
+float beta_dist(float a, float b, float x);
 
 int collisionPreambles = 0;
 int totalPreambleTxop = 0;
@@ -53,7 +64,7 @@ int main(int argc, char** argv){
         }
         
         int time;
-        int maxTime = 60000; // 60s to ms
+        int maxTime = 10000; // 10s to ms
 
         int accessTime = 5; // 1, 6ms마다 접근
         int nAccessUE = ceil((float)n * (float)accessTime * 1.0/(float)maxTime);
@@ -74,7 +85,8 @@ int main(int argc, char** argv){
         for(time = 0; time < maxTime; time++){
             
             if(activeCheck <= nUE && time % accessTime == 1){
-                activeCheck += nAccessUE;
+                int betaDist = (int)ceil(beta_dist(3, 4, (float)time/2000.0));
+                activeCheck += nUE * betaDist / 2000;
                 // printf("%d\n", activeCheck);
                 for(int i = 0; i <= activeCheck; i++){
                     if((UE+i)->active == -1){
@@ -316,4 +328,9 @@ void saveResult(int nUE, struct UEinfo *UE){
     }
     
     fclose(fp_l);
+}
+
+float beta_dist(float a, float b, float x){
+    float betaValue = (1/betaF) *(pow(x, (a-1))) * (pow((1-x), (b-1)));
+    return betaValue;
 }
