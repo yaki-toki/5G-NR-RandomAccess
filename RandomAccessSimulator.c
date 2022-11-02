@@ -225,7 +225,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
     }else{
         // totalPreambleTxop += check;
         collisionPreambles += check;
-        for(int i = 0; i <= check; i++){
+        for(int i = 0; i < check; i++){
             (UEs+userIdx[i])->rarWindow = 5;
             (UEs+userIdx[i])->preambleTxCounter++;
         }
