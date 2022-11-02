@@ -73,8 +73,12 @@ int main(int argc, char** argv){
 
         for(time = 0; time < maxTime; time++){
             
-            if(activeCheck <= nUE && time % accessTime == 1){
-                activeCheck += nAccessUE;
+            if(time % accessTime == 1){
+                if (activeCheck >= nUE){
+                    activeCheck = nUE;
+                }else{
+                    activeCheck += nAccessUE;
+                }
                 // printf("%d\n", activeCheck);
                 for(int i = 0; i <= activeCheck; i++){
                     if((UE+i)->active == -1){
@@ -171,7 +175,7 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->rarWindow++;
         if(user->rarWindow >= 5){
 
-            user->txTime = time + (rand() % backoff)+2;
+            user->txTime = time + (rand() % backoff)+1;
 
             // RAR window¸¦ 1 Áõ°¡
             user->rarWindow = 0;

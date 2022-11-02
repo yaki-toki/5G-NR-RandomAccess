@@ -17,9 +17,11 @@ int main(){
     fp_l = fopen(fileNameResultLog, "w+");
 
     for(int i = 0; i < 10000; i++){
-        sprintf(logBuff, "%lf\n", beta_dist(3, 4, (float)i/10000.0));
-        fputs(logBuff, fp_l);
-        printf("%lf\n", beta_dist(3, 4, (float)i/10000.0));
+        if(i % 5 == 1){
+            sprintf(logBuff, "%lf\n", beta_dist(3, 4, (float)i/10000.0));
+            fputs(logBuff, fp_l);
+            printf("%lf\n", beta_dist(3, 4, (float)i/10000.0));
+        }
     }
     fclose(fp_l);
     return 0;
