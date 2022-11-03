@@ -27,7 +27,7 @@ struct UEinfo{
 
 void initialUE(struct UEinfo *user, int id);
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int maxRarWindow, int maxMsg2TxCount);
-void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow);
+void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow, int *grantCheck, int nGrantUL);
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble);
 void timerIncrease(struct UEinfo *user);
 int successUEs(struct UEinfo *user, int nUE);
@@ -55,6 +55,7 @@ int main(int argc, char** argv){
         int nPreamble = 64;         // Number of preambles
         int backoffIndicator = 20;  // Number of backoff indicator
         int nGrantUL = 12;          // Number of UL Grant
+        int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
 
         int maxRarWindow = 5;
         int maxMsg2TxCount = 10;
@@ -93,7 +94,7 @@ int main(int argc, char** argv){
         int activeCheck = 0;
 
         for(time = 0; time < maxTime; time++){
-            
+            grantCheck = 0;
             // 5 ms마다 UE 접근
             if(time % accessTime == 1){
                 // 최대 UE수를 넘는 경우
@@ -136,7 +137,7 @@ int main(int argc, char** argv){
                     if((UE+i)->txTime + 2 == time && (UE+i)->txTime != -1){
                         
                         int checkPreambleNumber = (UE+i)->preamble; // 현재의 UE가 선택한 preamble number
-                        preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator, maxRarWindow);
+                        preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator, maxRarWindow, &grantCheck, nGrantUL);
                     }
                     
                     // MSG 3 -> MSG 4: Resource allocation (contention resolution)
@@ -237,7 +238,7 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, i
 }
 
 // preamble의 충돌 확인
-void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow){
+void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow, int *grantCheck, int nGrantUL){
     int check = 0;
     // MSG 1이 BS에 도달할 때 까지 2 time slot을 기다려야 함
     // 따라서 전송하는 시점에서 2 time slot이 더해진 현재 time이 동일해야 충돌을 확인할 수 있음
@@ -254,14 +255,23 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         }
     }
     if(check == 1){ // 현재 전송하는 UE가 선택한 preamble의 충돌이 없는 경우
-        // 전체 preamble전송 횟수
-        totalPreambleTxop++;
-        // preamble 전송 횟수
-        user->preambleTxCounter++;
-        user->active = 2;
-        user->txTime = time + 2;
-        user->connectionRequest = 0;
-        user->msg2Flag = 1;
+        // 권한을 할당할 때 마다 확인용 변수를 1씩 증가
+        *grantCheck = *grantCheck+1;
+        // 한 time에 최대 UL grant는 12개 까지만 부여
+        if(*grantCheck >= 12){
+            user->rarWindow = maxRarWindow;
+            user->txTime = time + maxRarWindow - 2;
+            // printf("%d\n", *grantCheck);
+        }else{
+            // 전체 preamble전송 횟수
+            totalPreambleTxop++;
+            // preamble 전송 횟수
+            user->preambleTxCounter++;
+            user->active = 2;
+            user->txTime = time + 2;
+            user->connectionRequest = 0;
+            user->msg2Flag = 1;
+        }
     }else{  // Preamble이 충돌한 경우
         collisionPreambles += check;
         for(int i = 0; i < check; i++){
@@ -361,8 +371,8 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
     
     float ratioFailed = (float)failedUEs/(float)nUE;
-    printf("Fail probability: %lf\n", ratioFailed);
-    sprintf(resultBuff, "Fail probability: %lf\n", ratioFailed);
+    printf("Fail ratio: %lf\n", ratioFailed);
+    sprintf(resultBuff, "Fail ratio: %lf\n", ratioFailed);
     fputs(resultBuff, fp);
     
     float nCollisionPreambles = (float)collisionPreambles/(float)preambleTxCount;
