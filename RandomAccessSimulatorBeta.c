@@ -43,7 +43,7 @@ int main(int argc, char** argv){
     srand(2022);    // Fix random seed
 
     // distribution: 0(Uniform), 1(Beta)
-    int distribution = 0;
+    int distribution = 1;
 
     for(int n = 10000; n <= 100000; n+=10000){
  

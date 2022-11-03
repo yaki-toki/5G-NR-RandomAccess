@@ -5,6 +5,12 @@
 
 ### Finally simulator: *RandomAccessSimulatorBeta.c*
 
+### You should create a folder in the same path as below before executing the code.
+~~~bash
+mkdir ./Uniform_SimulationResults
+mkdir ./Beta_SimulationResults
+~~~
+
 #### Simulation parameters:
 - nUE: [5000, 10000, 20000, ..., 100000]
 - Distribution: Uniform, Beta
