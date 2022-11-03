@@ -144,7 +144,7 @@ int main(int argc, char** argv){
         printf("Number of failed UEs: %d\n", failedUEs);
         printf("Fail probability:: %lf\n", (float)failedUEs/(float)nUE);
         printf("Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
-        printf("Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+        printf("Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
         printf("Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
 
         saveSimulationLog(time, nUE, nSuccessUE, failedUEs, preambleTxCount, averageDelay);
@@ -231,7 +231,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         collisionPreambles += check;
         for(int i = 0; i < check; i++){
             (UEs+userIdx[i])->rarWindow = 5;
-            (UEs+userIdx[i])->preambleTxCounter++;
+            (UEs+userIdx[i])->txTime = time + 3;
         }
     }
     return;
@@ -297,7 +297,7 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
     fputs(resultBuff, fp);

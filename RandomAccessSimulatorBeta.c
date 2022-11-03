@@ -48,7 +48,7 @@ int main(int argc, char** argv){
         UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
         int nPreamble = 64;
-        int backoffIndicator = 20;
+        int backoffIndicator = 30;
         int nGrantUL = 12;
 
         for(int i = 0; i < nUE; i++){
@@ -138,7 +138,7 @@ int main(int argc, char** argv){
         printf("Number of failed UEs: %d\n", failedUEs);
         printf("Fail probability:: %lf\n", (float)failedUEs/(float)nUE);
         printf("Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
-        printf("Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
+        printf("Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
         printf("Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
 
         saveSimulationLog(time, nUE, nSuccessUE, failedUEs, preambleTxCount, averageDelay);
@@ -176,13 +176,13 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
 
             // 최대 전송 횟수를 1 증가
             user->maxRarCounter++;
-
+            
             // 지금 preamble의 전송 횟수가 최대인 경우
             if(user->maxRarCounter >= 10){
-                
+
                 // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
                 user->raFailed = -1;
-
+                
                 // preamble을 변경하고 backoff만큼 대기
                 user->preamble = rand() % nPreamble;
                 
@@ -226,7 +226,8 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         collisionPreambles += check;
         for(int i = 0; i < check; i++){
             (UEs+userIdx[i])->rarWindow = 5;
-            (UEs+userIdx[i])->preambleTxCounter++;
+            (UEs+userIdx[i])->txTime = time + 3;
+            // (UEs+userIdx[i])->preambleTxCounter++;
         }
     }
     return;
