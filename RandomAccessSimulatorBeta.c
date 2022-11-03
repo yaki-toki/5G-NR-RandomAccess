@@ -41,7 +41,7 @@ int totalPreambleTxop = 0;
 int main(int argc, char** argv){
     srand(2022);    // Fix random seed
     
-    for(int n = 10000; n <= 10000; n+=10000){
+    for(int n = 10000; n <= 100000; n+=10000){
  
         int nUE = n;
         struct UEinfo *UE;
@@ -169,7 +169,7 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->rarWindow++;
         if(user->rarWindow >= 5){
 
-            user->txTime = time + (rand() % backoff)+1;
+            user->txTime = time + (rand() % backoff)+2;
 
             // RAR window를 1 증가
             user->rarWindow = 0;
@@ -213,6 +213,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         }
     }
     if(check == 1){
+        // 전체 preamble전송 횟수
         totalPreambleTxop++;
         // preamble 전송 횟수
         user->preambleTxCounter++;
@@ -294,6 +295,7 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
+    fputs(resultBuff, fp);
 
     fclose(fp);
 }

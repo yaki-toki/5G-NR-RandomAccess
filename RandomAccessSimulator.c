@@ -175,7 +175,7 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->rarWindow++;
         if(user->rarWindow >= 5){
 
-            user->txTime = time + (rand() % backoff)+1;
+            user->txTime = time + (rand() % backoff)+2;
 
             // RAR window¸¦ 1 Áõ°¡
             user->rarWindow = 0;
@@ -297,9 +297,10 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
+    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)preambleTxCount/(float)nSuccessUE);
     fputs(resultBuff, fp);
     sprintf(resultBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
+    fputs(resultBuff, fp);
 
     fclose(fp);
 }
