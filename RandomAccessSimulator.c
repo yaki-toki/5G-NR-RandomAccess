@@ -20,6 +20,7 @@ struct UEinfo{
     int preambleChange;     // 성공 할 때 까지 preamble 몇 번 바꿨는지
     int raFailed;           // MSG 2 max count 되면 그냥 실패
     int rampingPower;
+    int nowBackoff;
 };
 
 void initialUE(struct UEinfo *user, int id);
@@ -100,12 +101,12 @@ int main(int argc, char** argv){
                     if((UE+i)->active == 1 && (UE+i)->msg2Flag == 0){
                         // MSG 1을 전송하는 UE들이 preamble을 선택
                         selectPreamble(UE+i, nPreamble, time, backoffIndicator);
+                    }
 
-                        // Preamble collision detection
-                        if((UE+i)->txTime + 2 == time && (UE+i)->txTime != -1){
-                            int checkPreambleNumber = (UE+i)->preamble;
-                            preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator);
-                        }
+                    // Preamble collision detection
+                    if((UE+i)->txTime + 2 == time && (UE+i)->txTime != -1){
+                        int checkPreambleNumber = (UE+i)->preamble;
+                        preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator);
                     }
                     
                     // MSG 3 request
@@ -137,16 +138,7 @@ int main(int argc, char** argv){
                 preambleTxCount += (UE+i)->preambleTxCounter;
             }
         }
-
-        printf("Total simulation time: %dms\n", time);
-        printf("Number of succeed UEs: %d\n", nSuccessUE);
-        printf("Success probability: %lf\n", (float)nSuccessUE/(float)nUE);
-        printf("Number of failed UEs: %d\n", failedUEs);
-        printf("Fail probability:: %lf\n", (float)failedUEs/(float)nUE);
-        printf("Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
-        printf("Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
-        printf("Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
-
+        printf("-------- %05d Result ---------\n", activeCheck);
         saveSimulationLog(time, nUE, nSuccessUE, failedUEs, preambleTxCount, averageDelay);
         saveResult(nUE, UE);
     }
@@ -172,30 +164,33 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->preambleTxCounter = 0;
         user->preambleChange = 1;
     }else{
-        user->rarWindow++;
-        if(user->rarWindow >= 5){
+        if(user->nowBackoff == 0){
+            user->rarWindow++;
+            if(user->rarWindow >= 5){
+                int tmp = (rand() % backoff)+ 2;
+                user->txTime = time + tmp;
+                user->nowBackoff = tmp;
 
-            user->txTime = time + (rand() % backoff)+2;
+                // RAR window를 1 증가
+                user->rarWindow = 0;
 
-            // RAR window를 1 증가
-            user->rarWindow = 0;
-
-            // 최대 전송 횟수를 1 증가
-            user->maxRarCounter++;
-
-            // 지금 preamble의 전송 횟수가 최대인 경우
-            if(user->maxRarCounter >= 10){
+                // 최대 전송 횟수를 1 증가
+                user->maxRarCounter++;
                 
-                // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
-                user->raFailed = -1;
+                // 지금 preamble의 전송 횟수가 최대인 경우
+                if(user->maxRarCounter >= 10){
 
-                // preamble을 변경하고 backoff만큼 대기
-                user->preamble = rand() % nPreamble;
-                
-                // 최대 전송 횟수를 0으로 초기화
-                user->maxRarCounter = 0;
+                    // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
+                    user->raFailed = -1;
 
-                user->preambleChange++;
+                    // preamble을 변경하고 backoff만큼 대기
+                    user->preamble = rand() % nPreamble;
+                    
+                    // 최대 전송 횟수를 0으로 초기화
+                    user->maxRarCounter = 0;
+
+                    user->preambleChange++;
+                }
             }
         }
     }
@@ -264,6 +259,10 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
 void timerIncrease(struct UEinfo *user){
     if(user->active != 0)
         user->timer++;
+
+    if(user->nowBackoff != 0){
+        user->nowBackoff--;
+    }
 }
 
 int successUEs(struct UEinfo *user, int nUE){
@@ -283,23 +282,45 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     sprintf(fileNameResult, "./2_SimulationResults/2_Exclude_msg2_failures_UE%05d_Results.txt", nUE);
     fp = fopen(fileNameResult, "w+");
 
+    printf("Number of UEs: %d\n", nUE);
     sprintf(resultBuff, "Number of UEs: %d\n", nUE);
     fputs(resultBuff, fp);
+    
+    printf("Total simulation time: %dms\n", time);
     sprintf(resultBuff, "Total simulation time: %dms\n", time);
     fputs(resultBuff, fp);
+    
+    printf("Number of succeed UEs: %d\n", nSuccessUE);
     sprintf(resultBuff, "Number of succeed UEs: %d\n", nSuccessUE);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Success probability: %lf\n", (float)nSuccessUE/(float)nUE);
+    
+    float ratioSuccess = (float)nSuccessUE/(float)nUE;
+    printf("Success ratio: %lf\n", ratioSuccess);
+    sprintf(resultBuff, "Success ratio: %lf\n", ratioSuccess);
     fputs(resultBuff, fp);
+    
+    printf("Number of failed UEs: %d\n", failedUEs);
     sprintf(resultBuff, "Number of failed UEs: %d\n", failedUEs);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Fail probability:: %lf\n", (float)failedUEs/(float)nUE);
+    
+    float ratioFailed = (float)failedUEs/(float)nUE;
+    printf("Fail probability: %lf\n", ratioFailed);
+    sprintf(resultBuff, "Fail probability: %lf\n", ratioFailed);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Number of collision preambles: %lf\n", (float)collisionPreambles/(float)preambleTxCount);
+    
+    float nCollisionPreambles = (float)collisionPreambles/(float)preambleTxCount;
+    printf("Number of collision preambles: %lf\n", nCollisionPreambles);
+    sprintf(resultBuff, "Number of collision preambles: %lf\n", nCollisionPreambles);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Average preamble tx count: %lf\n", (float)totalPreambleTxop/(float)nSuccessUE);
+    
+    float averagePreambleTx = (float)totalPreambleTxop/(float)nSuccessUE;
+    printf("Average preamble tx count: %lf\n", averagePreambleTx);
+    sprintf(resultBuff, "Average preamble tx count: %lf\n", averagePreambleTx);
     fputs(resultBuff, fp);
-    sprintf(resultBuff, "Average delay: %lfms\n", averageDelay/(float)nSuccessUE);
+    
+    float averageDelay = averageDelay/(float)nSuccessUE;
+    printf("Average delay: %lfms\n", averageDelay);
+    sprintf(resultBuff, "Average delay: %lfms\n", averageDelay);
     fputs(resultBuff, fp);
 
     fclose(fp);
