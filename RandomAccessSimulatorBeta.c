@@ -21,13 +21,13 @@ struct UEinfo{
     int msg4Flag;           // MSG 3-4 성공 여부 (결론 RA 성공)
     int preambleChange;     // 성공 할 때 까지 preamble 몇 번 바꿨는지
     int raFailed;           // MSG 2 max count 되면 그냥 실패
-    int rampingPower;
-    int nowBackoff;
+    int nowBackoff;         // Backoff counter
+    int rampingPower;       // using for NOMA
 };
 
 void initialUE(struct UEinfo *user, int id);
-void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff);
-void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff);
+void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int maxRarWindow, int maxMsg2TxCount);
+void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow);
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble);
 void timerIncrease(struct UEinfo *user);
 int successUEs(struct UEinfo *user, int nUE);
@@ -42,86 +42,106 @@ int totalPreambleTxop = 0;
 int main(int argc, char** argv){
     srand(2022);    // Fix random seed
 
+    // distribution: 0(Uniform), 1(Beta)
     int distribution = 0;
 
     for(int n = 10000; n <= 100000; n+=10000){
  
         int nUE = n;
         struct UEinfo *UE;
+        // UE의 수 만큼 사용할 메모리 선언
         UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
-        int nPreamble = 64;
-        int backoffIndicator = 20;
-        int nGrantUL = 12;
+        int nPreamble = 64;         // Number of preambles
+        int backoffIndicator = 20;  // Number of backoff indicator
+        int nGrantUL = 12;          // Number of UL Grant
 
+        int maxRarWindow = 5;
+        int maxMsg2TxCount = 10;
+
+        // UE 정보 초기화
         for(int i = 0; i < nUE; i++){
             initialUE(UE+i, i);
         }
         
         int time;
-        int maxTime = 0; // 10s to ms
-        int nAccessUE;
+        int maxTime = 0;
+
+        int nAccessUE;      // Uniform distribution에서 사용하는 변수
+
         int accessTime = 5; // 1, 6ms마다 접근
         if(distribution == 0){
-            maxTime = 60000;
-            nAccessUE= ceil((float)n * (float)accessTime * 1.0/(float)maxTime);
-            if(nAccessUE == 0){
+            // Beta distribution Max time: 60s
+            maxTime = 60000;    // second to millisecond
+
+            // 5 ms마다 몇 대의 UE가 접근하는지
+            nAccessUE = ceil((float)n * (float)accessTime * 1.0/(float)maxTime);
+            
+            // 계산한 접근 UE의 수가 0보다 작거나 같은 경우
+            if(nAccessUE <= 0){
                 nAccessUE = 1;
             }
 
         }else{
-            maxTime = 10000;
+            // Beta distribution Max time: 10s
+            maxTime = 10000;    // second to millisecond
         }
 
         int nSuccessUE;
+
+        // 현재까지 접근한 UE의 수
         int activeCheck = 0;
 
         for(time = 0; time < maxTime; time++){
             
+            // 5 ms마다 UE 접근
             if(time % accessTime == 1){
+                // 최대 UE수를 넘는 경우
                 if(activeCheck >= nUE){
                     activeCheck = nUE;
                 }else{
                     if(distribution == 0){
                         activeCheck += nAccessUE;
                     }else{
+                        // Beta(3, 4)를 따르는 분포
                         float betaDist = beta_dist(3, 4, (float)time/(float)maxTime);
                         int accessUEs = (int)ceil((float)nUE * betaDist / ((float)maxTime/(float)accessTime));
                         activeCheck += accessUEs;
                     }
-                    
-                }
-                // printf("%d\n", activeCheck);
-                for(int i = 0; i < activeCheck; i++){
-                    if((UE+i)->active == -1){
-                        // MSG 1 전송을 시도하는 상태
-                        (UE+i)->active = 1;
-                        // 지금 시점을 전송하는 시점으로 기준
-                        (UE+i)->txTime = time+1;
-                        (UE+i)->timer = 0;
-                        (UE+i)->msg2Flag = 0;
+                    // printf("%d\n", activeCheck);
+                    for(int i = 0; i < activeCheck; i++){
+                        if((UE+i)->active == -1){
+                            // MSG 1 전송을 시도하는 상태
+                            (UE+i)->active = 1;
+                            // 지금 시점을 전송하는 시점으로 기준
+                            (UE+i)->txTime = time+1;
+                            (UE+i)->timer = 0;
+                            (UE+i)->msg2Flag = 0;
+                        }
                     }
                 }
             }
 
             // Time t시점에서의 UE들의 상태를 확인
             for(int i = 0; i < nUE; i++){
-                // Random access에 성공한 UE들은 제외 시킴
+                // Random access에 성공하거나 실패한 UE들은 제외 시킴
                 if((UE+i)->msg4Flag == 0 && (UE+i)->raFailed != -1){
 
                     if((UE+i)->active == 1 && (UE+i)->msg2Flag == 0){
                         // MSG 1을 전송하는 UE들이 preamble을 선택
-                        selectPreamble(UE+i, nPreamble, time, backoffIndicator);
+                        selectPreamble(UE+i, nPreamble, time, backoffIndicator, maxRarWindow, maxMsg2TxCount);
                     }
 
-                    // Preamble collision detection
+                    // MSG 1 -> MSG 2: Preamble collision detection
                     if((UE+i)->txTime + 2 == time && (UE+i)->txTime != -1){
-                        int checkPreambleNumber = (UE+i)->preamble;
-                        preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator);
+                        
+                        int checkPreambleNumber = (UE+i)->preamble; // 현재의 UE가 선택한 preamble number
+                        preambleCollision(UE+i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator, maxRarWindow);
                     }
                     
-                    // MSG 3 request
+                    // MSG 3 -> MSG 4: Resource allocation (contention resolution)
                     if((UE+i)->active == 2 && (UE+i)->txTime+2 == time){
+                        // 현재의 UE가 MSG 1->2를 성공한 경우
                         requestResourceAllocation(UE+i, time, backoffIndicator, nPreamble);
                     }
 
@@ -131,24 +151,25 @@ int main(int argc, char** argv){
                 }
             }
             nSuccessUE = successUEs(UE, nUE);
+            
             if(nSuccessUE == nUE){
                 break;
             }
         }
 
-
-        float totalDelay = 0;
-        int failedUEs = 0;
-        int preambleTxCount = 0;
+        int failedUEs = nUE - nSuccessUE;   // 실패한 UE
+        float totalDelay = 0;               // 성공한 모든 UE의 delay 값
+        int preambleTxCount = 0;            // 성공한 모든 UE의 preamble tx 횟수
 
         for(int i = 0; i < nUE; i++){
-            if((UE+i)->msg4Flag == 0){
-                failedUEs++;
-            }else{
+            // RA에 성공한 UE들만 확인
+            if((UE+i)->msg4Flag != 0){
                 totalDelay += (float)(UE+i)->timer;
                 preambleTxCount += (UE+i)->preambleTxCounter;
             }
         }
+
+        // 결과 출력
         printf("-------- %05d Result ---------\n", activeCheck);
         saveSimulationLog(time, nUE, nSuccessUE, failedUEs, preambleTxCount, totalDelay, distribution);
         saveResult(nUE, UE, distribution);
@@ -158,6 +179,7 @@ int main(int argc, char** argv){
 }
 
 void initialUE(struct UEinfo *user, int id){
+    // UE 초기화
     user->idx = id;
     user->timer = -1;
     user->active = -1;
@@ -165,7 +187,7 @@ void initialUE(struct UEinfo *user, int id){
     user->preamble = -1;
 }
 
-void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
+void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int maxRarWindow, int maxMsg2TxCount){
     // 처음 전송을 시도하는 UE
     if(user->preamble == -1){
         int tmp = rand() % nPreamble;
@@ -175,33 +197,39 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
         user->preambleTxCounter = 0;
         user->preambleChange = 1;
         user->nowBackoff = 0;
-    }else{
+    }
+    // 이미 한 번 전송을 시도 했던 UE
+    else{
+        // 그 중 backoff counter가 0인 UE들만
         if(user->nowBackoff == 0){
+
+            // RAR window 1 증가
             user->rarWindow++;
-            if(user->rarWindow >= 5){
-                int tmp = (rand() % backoff)+ 2;
+
+            // RAR window 대기시간이 5ms가 되는 경우
+            if(user->rarWindow >= maxRarWindow){
+                int tmp = (rand() % backoff) + 2;
+                // 일정 시간 다음에 전송 시도
                 user->txTime = time + tmp;
+                // backoff counter 설정
                 user->nowBackoff = tmp;
 
-                // RAR window를 1 증가
+                // RAR window 초기화
                 user->rarWindow = 0;
 
                 // 최대 전송 횟수를 1 증가
                 user->maxRarCounter++;
                 
                 // 지금 preamble의 전송 횟수가 최대인 경우
-                if(user->maxRarCounter >= 10){
-
+                if(user->maxRarCounter >= maxMsg2TxCount){
                     // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
                     user->raFailed = -1;
 
-                    // preamble을 변경하고 backoff만큼 대기
-                    user->preamble = rand() % nPreamble;
-                    
+                    // user->preamble = rand() % nPreamble;
                     // 최대 전송 횟수를 0으로 초기화
-                    user->maxRarCounter = 0;
+                    // user->maxRarCounter = 0;
+                    // user->preambleChange++;
 
-                    user->preambleChange++;
                 }
             }
         }
@@ -209,7 +237,7 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff){
 }
 
 // preamble의 충돌 확인
-void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff){
+void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow){
     int check = 0;
     // MSG 1이 BS에 도달할 때 까지 2 time slot을 기다려야 함
     // 따라서 전송하는 시점에서 2 time slot이 더해진 현재 time이 동일해야 충돌을 확인할 수 있음
@@ -225,7 +253,7 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
             }
         }
     }
-    if(check == 1){
+    if(check == 1){ // 현재 전송하는 UE가 선택한 preamble의 충돌이 없는 경우
         // 전체 preamble전송 횟수
         totalPreambleTxop++;
         // preamble 전송 횟수
@@ -234,13 +262,19 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         user->txTime = time + 2;
         user->connectionRequest = 0;
         user->msg2Flag = 1;
-    }else{
-        // totalPreambleTxop += check;
+    }else{  // Preamble이 충돌한 경우
         collisionPreambles += check;
         for(int i = 0; i < check; i++){
-            (UEs+userIdx[i])->rarWindow = 5;
-            (UEs+userIdx[i])->txTime = time + 3;
-            // (UEs+userIdx[i])->preambleTxCounter++;
+            // RAR window를 5로 설정
+            (UEs+userIdx[i])->rarWindow = maxRarWindow;
+            // 전송 시점을 3 time slot 뒤로 미룸
+            (UEs+userIdx[i])->txTime = time + maxRarWindow - 2;
+
+            // 실재로 충돌이 된 UE는 RAR window가 최대가 되될 때 까지 
+            // 이미 충돌이 발생하기 때문에 RAR window를 최대로 설정
+
+            // 전송 시점을 time + maxRarWindow - 2를 한 이유는 
+            // 이미 2 타임 지난 다음에 확인하는 것 이기 때문
         }
     }
     return;
@@ -260,6 +294,8 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
             user->txTime = time + 1; //(rand() % backoff) + 1;
         }
     }else{
+        // 최대 대기 시간동안 MSG 4의 응답이 없는 경우
+        // 모든 상태를 초기화 한다.
         int tmp = (rand() % backoff) + 2;
         user->active = 1;
         user->txTime = time + tmp;
@@ -267,7 +303,6 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
         user->preamble = rand() % nPreamble;
         user->msg2Flag = 0;
         user->rarWindow = 0;
-        user->maxRarCounter = 0;
         user->preambleTxCounter++;
     }
 }
@@ -291,6 +326,7 @@ int successUEs(struct UEinfo *user, int nUE){
     return success;
 }
 
+// Result logging
 void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float totalDelay, int distribution){
     FILE *fp;
     char resultBuff[1000];
