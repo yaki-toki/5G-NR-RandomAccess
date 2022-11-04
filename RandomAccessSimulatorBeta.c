@@ -26,7 +26,7 @@ struct UEinfo{
 };
 
 void initialUE(struct UEinfo *user, int id);
-void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int maxRarWindow, int maxMsg2TxCount);
+void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int accessTime, int maxRarWindow, int maxMsg2TxCount);
 void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow, int *grantCheck, int nGrantUL);
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble);
 void timerIncrease(struct UEinfo *user);
@@ -130,7 +130,7 @@ int main(int argc, char** argv){
 
                     if((UE+i)->active == 1 && (UE+i)->msg2Flag == 0){
                         // MSG 1을 전송하는 UE들이 preamble을 선택
-                        selectPreamble(UE+i, nPreamble, time, backoffIndicator, maxRarWindow, maxMsg2TxCount);
+                        selectPreamble(UE+i, nPreamble, time, backoffIndicator, accessTime, maxRarWindow, maxMsg2TxCount);
                     }
 
                     // MSG 1 -> MSG 2: Preamble collision detection
@@ -188,15 +188,15 @@ void initialUE(struct UEinfo *user, int id){
     user->preamble = -1;
 }
 
-void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int maxRarWindow, int maxMsg2TxCount){
+void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int accessTime, int maxRarWindow, int maxMsg2TxCount){
     // 처음 전송을 시도하는 UE
     if(user->preamble == -1){
         int tmp = rand() % nPreamble;
         user->preamble = tmp;
         user->rarWindow = 0;
         user->maxRarCounter = 0;
-        user->preambleTxCounter = 0;
         user->preambleChange = 1;
+        user->preambleTxCounter = 1;
         user->nowBackoff = 0;
     }
     // 이미 한 번 전송을 시도 했던 UE
@@ -210,16 +210,28 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, i
             // RAR window 대기시간이 5ms가 되는 경우
             if(user->rarWindow >= maxRarWindow){
                 int tmp = (rand() % backoff) + 2;
-                // 일정 시간 다음에 전송 시도
-                user->txTime = time + tmp;
+                int subTime = time+tmp;
+                if(subTime % accessTime == 0){
+                    // 일정 시간 다음에 전송 시도
+                    user->txTime = subTime+1;
+                }else if(subTime % accessTime == 1){
+                    // 일정 시간 다음에 전송 시도
+                    user->txTime = subTime;
+                }else{
+                    // 일정 시간 다음에 전송 시도
+                    user->txTime = subTime + (accessTime - (subTime % accessTime) + 1);
+                }
+                
                 // backoff counter 설정
-                user->nowBackoff = tmp;
+                user->nowBackoff = user->txTime - time;
 
                 // RAR window 초기화
                 user->rarWindow = 0;
 
                 // 최대 전송 횟수를 1 증가
                 user->maxRarCounter++;
+
+                user->preambleTxCounter++;
                 
                 // 지금 preamble의 전송 횟수가 최대인 경우
                 if(user->maxRarCounter >= maxMsg2TxCount){
@@ -230,7 +242,6 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, i
                     // 최대 전송 횟수를 0으로 초기화
                     // user->maxRarCounter = 0;
                     // user->preambleChange++;
-
                 }
             }
         }
@@ -258,22 +269,23 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
         // 권한을 할당할 때 마다 확인용 변수를 1씩 증가
         *grantCheck = *grantCheck+1;
         // 한 time에 최대 UL grant는 12개 까지만 부여
-        if(*grantCheck >= 12){
+        if(*grantCheck >= nGrantUL){
             user->rarWindow = maxRarWindow;
             user->txTime = time + maxRarWindow - 2;
             // printf("%d\n", *grantCheck);
         }else{
             // 전체 preamble전송 횟수
             totalPreambleTxop++;
-            // preamble 전송 횟수
-            user->preambleTxCounter++;
             user->active = 2;
             user->txTime = time + 2;
             user->connectionRequest = 0;
             user->msg2Flag = 1;
         }
     }else{  // Preamble이 충돌한 경우
-        collisionPreambles += check;
+        collisionPreambles+=check;
+        // 전체 preamble전송 횟수
+        totalPreambleTxop+=check;
+
         for(int i = 0; i < check; i++){
             // RAR window를 5로 설정
             (UEs+userIdx[i])->rarWindow = maxRarWindow;
@@ -313,7 +325,7 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
         user->preamble = rand() % nPreamble;
         user->msg2Flag = 0;
         user->rarWindow = 0;
-        user->preambleTxCounter++;
+        // user->preambleTxCounter++;
     }
 }
 
@@ -362,8 +374,8 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
     
     float ratioSuccess = (float)nSuccessUE/(float)nUE;
-    printf("Success ratio: %lf\n", ratioSuccess);
-    sprintf(resultBuff, "Success ratio: %lf\n", ratioSuccess);
+    printf("Success ratio: %.2lf\n", ratioSuccess);
+    sprintf(resultBuff, "Success ratio: %.2lf\n", ratioSuccess);
     fputs(resultBuff, fp);
     
     printf("Number of failed UEs: %d\n", failedUEs);
@@ -371,23 +383,23 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
     
     float ratioFailed = (float)failedUEs/(float)nUE;
-    printf("Fail ratio: %lf\n", ratioFailed);
-    sprintf(resultBuff, "Fail ratio: %lf\n", ratioFailed);
+    printf("Fail ratio: %.2lf\n", ratioFailed);
+    sprintf(resultBuff, "Fail ratio: %.2lf\n", ratioFailed);
     fputs(resultBuff, fp);
     
-    float nCollisionPreambles = (float)collisionPreambles/(float)preambleTxCount;
-    printf("Number of collision preambles: %lf\n", nCollisionPreambles);
-    sprintf(resultBuff, "Number of collision preambles: %lf\n", nCollisionPreambles);
+    float nCollisionPreambles = (float)collisionPreambles/(float)totalPreambleTxop;
+    printf("Number of collision preambles: %.2lf\n", nCollisionPreambles);
+    sprintf(resultBuff, "Number of collision preambles: %.2lf\n", nCollisionPreambles);
     fputs(resultBuff, fp);
     
-    float averagePreambleTx = (float)totalPreambleTxop/(float)nSuccessUE;
-    printf("Average preamble tx count: %lf\n", averagePreambleTx);
-    sprintf(resultBuff, "Average preamble tx count: %lf\n", averagePreambleTx);
+    float averagePreambleTx = (float)preambleTxCount/(float)nSuccessUE;
+    printf("Average preamble tx count: %.2lf\n", averagePreambleTx);
+    sprintf(resultBuff, "Average preamble tx count: %.2lf\n", averagePreambleTx);
     fputs(resultBuff, fp);
     
     float averageDelay = totalDelay/(float)nSuccessUE;
-    printf("Average delay: %lfms\n", averageDelay);
-    sprintf(resultBuff, "Average delay: %lfms\n", averageDelay);
+    printf("Average delay: %.2lfms\n", averageDelay);
+    sprintf(resultBuff, "Average delay: %.2lfms\n", averageDelay);
     fputs(resultBuff, fp);
 
     fclose(fp);
