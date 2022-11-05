@@ -52,7 +52,7 @@ int main(int argc, char** argv){
         // UE의 수 만큼 사용할 메모리 선언
         UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
-        int nPreamble = 64;         // Number of preambles
+        int nPreamble = 54;         // Number of preambles
         int backoffIndicator = 20;  // Number of backoff indicator
         int nGrantUL = 12;          // Number of UL Grant
         int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
