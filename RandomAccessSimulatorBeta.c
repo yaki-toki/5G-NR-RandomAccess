@@ -22,6 +22,7 @@ struct UEinfo{
     int preambleChange;     // 성공 할 때 까지 preamble 몇 번 바꿨는지
     int raFailed;           // MSG 2 max count 되면 그냥 실패
     int nowBackoff;         // Backoff counter
+    int firstTxTime;
     int rampingPower;       // using for NOMA
 };
 
@@ -59,7 +60,7 @@ int main(int argc, char** argv){
         // UE의 수 만큼 사용할 메모리 선언
         UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
 
-        int nPreamble = 64;         // Number of preambles
+        int nPreamble = 54;         // Number of preambles
         int backoffIndicator = 20;  // Number of backoff indicator
         int nGrantUL = 12;          // Number of UL Grant
         int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
@@ -129,6 +130,7 @@ int main(int argc, char** argv){
                         (UE + i)->txTime = time + 1;
                         (UE + i)->timer = 0;
                         (UE + i)->msg2Flag = 0;
+                        (UE+i)->firstTxTime = time + 1;
                     }
                 }
             }
@@ -158,12 +160,16 @@ int main(int argc, char** argv){
                         }
 
                         // 전송을 시도하는 UE들의 대기시간 증가
-                        if((UE+i)->active > 0 && (UE+i)->msg4Flag == 0)
+                        if((UE+i)->active > 0)
                             timerIncrease(UE+i);
                     }
                 }
             }
             nSuccessUE = successUEs(UE, nUE);
+
+            // if(grantCheck > nGrantUL){
+            //     printf("Require grant at %dms: %d\n", time, grantCheck);
+            // }
             
             if(nSuccessUE == nUE){
                 break;
@@ -177,7 +183,7 @@ int main(int argc, char** argv){
         for(int i = 0; i < nUE; i++){
             if(NULL != UE){
                 // RA에 성공한 UE들만 확인
-                if((UE+i)->msg4Flag != 0){
+                if((UE+i)->msg4Flag == 1){
                     totalDelay += (float)(UE+i)->timer;
                     preambleTxCount += (UE+i)->preambleTxCounter;
                 }
@@ -220,29 +226,14 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, i
     // 이미 한 번 전송을 시도 했던 UE
     else{
         // 그 중 backoff counter가 0인 UE들만
-        if(user->nowBackoff == 0){
+        if(user->nowBackoff <= 0){
 
             // RAR window 1 증가
             user->rarWindow++;
 
             // RAR window 대기시간이 5ms가 되는 경우
             if(user->rarWindow >= maxRarWindow){
-                int tmp = (rand() % backoff) + 2;
-                int subTime = time+tmp;
-                if(subTime % accessTime == 0){
-                    // 일정 시간 다음에 전송 시도
-                    user->txTime = subTime+1;
-                }else if(subTime % accessTime == 1){
-                    // 일정 시간 다음에 전송 시도
-                    user->txTime = subTime;
-                }else{
-                    // 일정 시간 다음에 전송 시도
-                    user->txTime = subTime + (accessTime - (subTime % accessTime) + 1);
-                }
                 
-                // backoff counter 설정
-                user->nowBackoff = user->txTime - time;
-
                 // RAR window 초기화
                 user->rarWindow = 0;
 
@@ -250,16 +241,34 @@ void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, i
                 user->maxRarCounter++;
 
                 user->preambleTxCounter++;
-                
+
                 // 지금 preamble의 전송 횟수가 최대인 경우
                 if(user->maxRarCounter >= maxMsg2TxCount){
                     // MSG 2 수신에 최종적으로 실패한 UE는 앞으로 RA접근 시도 X
                     user->raFailed = -1;
 
                     // user->preamble = rand() % nPreamble;
+                    // user->preambleChange++;
                     // 최대 전송 횟수를 0으로 초기화
                     // user->maxRarCounter = 0;
                     // user->preambleChange++;
+                }else{
+                    int tmp = (rand() % backoff);
+
+                    int subTime = time+tmp;
+                    if(subTime % accessTime == 0){
+                        // 일정 시간 다음에 전송 시도
+                        user->txTime = subTime+1;
+                    }else if(subTime % accessTime == 1){
+                        // 일정 시간 다음에 전송 시도
+                        user->txTime = subTime;
+                    }else{
+                        // 일정 시간 다음에 전송 시도
+                        user->txTime = subTime + (accessTime - (subTime % accessTime) + 1);
+                    }
+                    
+                    // backoff counter 설정
+                    user->nowBackoff = user->txTime - time;
                 }
             }
         }
@@ -291,15 +300,14 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
             // 권한을 할당할 때 마다 확인용 변수를 1씩 증가
             *grantCheck = *grantCheck+1;
             // 한 time에 최대 UL grant는 12개 까지만 부여
-            if(*grantCheck >= nGrantUL){
-                user->rarWindow = maxRarWindow;
-                user->txTime = time + maxRarWindow - 2;
-                // printf("%d\n", *grantCheck);
-            }else{
+            if(*grantCheck < nGrantUL){
                 user->active = 2;
-                user->txTime = time + 2;
+                user->txTime = time + 6;
                 user->connectionRequest = 0;
                 user->msg2Flag = 1;
+                // printf("%d\n", *grantCheck);
+            }else{
+                user->txTime++;
             }
         }else{  // Preamble이 충돌한 경우
             collisionPreambles+=check;
@@ -308,16 +316,17 @@ void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int che
 
             for(int i = 0; i < check; i++){
                 // RAR window를 5로 설정
-                (UEs+userIdx[i])->rarWindow = maxRarWindow;
+                // (UEs+userIdx[i])->rarWindow = maxRarWindow;
+                
                 // 전송 시점을 3 time slot 뒤로 미룸
-                (UEs+userIdx[i])->txTime = time + maxRarWindow - 2;
-
+                (UEs+userIdx[i])->txTime++;
                 // 실재로 충돌이 된 UE는 RAR window가 최대가 되될 때 까지 
                 // 이미 충돌이 발생하기 때문에 RAR window를 최대로 설정
 
                 // 전송 시점을 time + maxRarWindow - 2를 한 이유는 
                 // 이미 2 타임 지난 다음에 확인하는 것 이기 때문
             }
+            // printf("%d\n ", subTime);
         }
     }
     free(userIdx);
@@ -330,11 +339,12 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
         if(p > 0.1){
             // 90%의 확률로 MSG 3-4 성공
             user->msg4Flag = 1;
+            user->timer = user->timer + 12;
             user->active = 0;
         }else{
             // printf("MSG3 Fail %d\n", user->idx);
             // 10%의 확률로 MSG 3-4 실패
-            user->txTime = time + 1; //(rand() % backoff) + 1;
+            user->txTime = user->txTime + 12; //(rand() % backoff) + 1;
         }
     }else{
         // 최대 대기 시간동안 MSG 4의 응답이 없는 경우
@@ -351,10 +361,9 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
 }
 
 void timerIncrease(struct UEinfo *user){
-    if(user->active != 0)
-        user->timer++;
-    
-    if(user->nowBackoff != 0){
+    user->timer++;
+
+    if(user->nowBackoff > 0){
         user->nowBackoff--;
     }
 }
@@ -435,8 +444,8 @@ void saveResult(int nUE, struct UEinfo *UE, int distribution){
     for(int i = 0; i < nUE; i++){
         // printf("Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
         // (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->preamble, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
-        sprintf(logBuff, "Idx: %d | Timer: %d | Active: %d | txTime: %d | Preamble: %d | Preamble change: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
-        (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->preamble, (UE+i)->preambleChange, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
+        sprintf(logBuff, "Idx: %d | Timer: %d | Active: %d | txTime: %d | FirstTxTime: %d | NowBackoff: %d | Preamble: %d | Preamble change: %d | RAR window: %d | Max RAR: %d | Preamble reTx: %d | MSG 2 Flag: %d | ConnectRequest: %d | MSG 4 Flag: %d\n",
+        (UE+i)->idx, (UE+i)->timer, (UE+i)->active, (UE+i)->txTime, (UE+i)->firstTxTime, (UE+i)->nowBackoff, (UE+i)->preamble, (UE+i)->preambleChange, (UE+i)->rarWindow, (UE+i)->maxRarCounter, (UE+i)->preambleTxCounter, (UE+i)->msg2Flag, (UE+i)->connectionRequest, (UE+i)->msg4Flag);
 
         fputs(logBuff, fp_l);
     }
