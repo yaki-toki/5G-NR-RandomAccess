@@ -43,7 +43,12 @@ int main(int argc, char** argv){
     srand(2022);    // Fix random seed
 
     // distribution: 0(Uniform), 1(Beta)
-    int distribution = 0;
+    int distribution = 1;
+    if(distribution == 0){
+        printf("Traffic model: Uniform\n\n");
+    }else{
+        printf("Traffic model: Beta\n\n");
+    }
 
     for(int n = 10000; n <= 100000; n+=10000){
  
@@ -362,6 +367,23 @@ int successUEs(struct UEinfo *user, int nUE){
 
 // Result logging
 void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float totalDelay, int distribution){
+    
+    float ratioSuccess = (float)nSuccessUE/(float)nUE * 100.0;
+    float ratioFailed = (float)failedUEs/(float)nUE;
+    float nCollisionPreambles = (float)collisionPreambles/(float)totalPreambleTxop;
+    float averagePreambleTx = (float)preambleTxCount/(float)nSuccessUE;
+    float averageDelay = totalDelay/(float)nSuccessUE;
+
+    printf("Number of UEs: %d\n", nUE);
+    printf("Total simulation time: %dms\n", time);
+    printf("Success ratio: %.2lf\n", ratioSuccess);
+    printf("Number of succeed UEs: %d\n", nSuccessUE);
+    printf("Number of failed UEs: %d\n", failedUEs);
+    printf("Fail ratio: %.4lf\n", ratioFailed);
+    printf("Number of collision preambles: %.2lf\n", nCollisionPreambles);
+    printf("Average preamble tx count: %.2lf\n", averagePreambleTx);
+    printf("Average delay: %.2lf\n", averageDelay);
+
     FILE *fp;
     char resultBuff[1000];
     char fileNameResult[500];
@@ -373,44 +395,30 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     
     fp = fopen(fileNameResult, "w+");
 
-    printf("Number of UEs: %d\n", nUE);
     sprintf(resultBuff, "Number of UEs: %d\n", nUE);
     fputs(resultBuff, fp);
     
-    printf("Total simulation time: %dms\n", time);
     sprintf(resultBuff, "Total simulation time: %dms\n", time);
     fputs(resultBuff, fp);
     
-    float ratioSuccess = (float)nSuccessUE/(float)nUE * 100.0;
-    printf("Success ratio: %.2lf\n", ratioSuccess);
     sprintf(resultBuff, "Success ratio: %.2lf\n", ratioSuccess);
     fputs(resultBuff, fp);
 
-    printf("Number of succeed UEs: %d\n", nSuccessUE);
     sprintf(resultBuff, "Number of succeed UEs: %d\n", nSuccessUE);
     fputs(resultBuff, fp);
     
-    printf("Number of failed UEs: %d\n", failedUEs);
     sprintf(resultBuff, "Number of failed UEs: %d\n", failedUEs);
     fputs(resultBuff, fp);
     
-    float ratioFailed = (float)failedUEs/(float)nUE;
-    printf("Fail ratio: %.4lf\n", ratioFailed);
     sprintf(resultBuff, "Fail ratio: %.4lf\n", ratioFailed);
     fputs(resultBuff, fp);
     
-    float nCollisionPreambles = (float)collisionPreambles/(float)nUE*10;
-    printf("Number of collision preambles: %.2lf\n", nCollisionPreambles);
     sprintf(resultBuff, "Number of collision preambles: %.2lf\n", nCollisionPreambles);
     fputs(resultBuff, fp);
     
-    float averagePreambleTx = (float)preambleTxCount/(float)nSuccessUE;
-    printf("Average preamble tx count: %.2lf\n", averagePreambleTx);
     sprintf(resultBuff, "Average preamble tx count: %.2lf\n", averagePreambleTx);
     fputs(resultBuff, fp);
     
-    float averageDelay = totalDelay/(float)nSuccessUE;
-    printf("Average delay: %.2lf\n", averageDelay);
     sprintf(resultBuff, "Average delay: %.2lf\n", averageDelay);
     fputs(resultBuff, fp);
 
