@@ -51,7 +51,9 @@ int main(int argc, char** argv){
     }
 
     for(int n = 10000; n <= 100000; n+=10000){
- 
+        collisionPreambles = 0;
+        totalPreambleTxop = 0;
+
         int nUE = n;
         struct UEinfo *UE;
         // UE의 수 만큼 사용할 메모리 선언
@@ -115,6 +117,9 @@ int main(int argc, char** argv){
                     float betaDist = beta_dist(3, 4, (float)time / (float)maxTime);
                     int accessUEs = (int)ceil((float)nUE * betaDist / ((float)maxTime / (float)accessTime));
                     activeCheck += accessUEs;
+                }
+                if(activeCheck >= nUE){
+                    activeCheck = nUE;
                 }
                 for (int i = 0; i < activeCheck; i++) {
                     if ((UE + i)->active == -1) {
