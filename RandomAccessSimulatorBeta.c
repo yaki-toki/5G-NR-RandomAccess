@@ -100,32 +100,30 @@ int main(int argc, char** argv){
 
         for(time = 0; time < maxTime; time++){
             grantCheck = 0;
+
+            if(activeCheck >= nUE){
+                    activeCheck = nUE;
+            }
             // 5 ms마다 UE 접근
-            if (time % accessTime == 1) {
+            if (time % accessTime == 1 && activeCheck != nUE) {
+                // printf("%d\n", activeCheck);
                 if (distribution == 0) {
-                    activeCheck += nAccessUE;
-                }
+                        activeCheck += nAccessUE;
+                    }
                 else {
                     // Beta(3, 4)를 따르는 분포
                     float betaDist = beta_dist(3, 4, (float)time / (float)maxTime);
                     int accessUEs = (int)ceil((float)nUE * betaDist / ((float)maxTime / (float)accessTime));
                     activeCheck += accessUEs;
                 }
-                // 최대 UE수를 넘는 경우
-                if (activeCheck >= nUE) {
-                    activeCheck = nUE;
-                }
-                else {
-                    // printf("%d\n", activeCheck);
-                    for (int i = 0; i < activeCheck; i++) {
-                        if ((UE + i)->active == -1) {
-                            // MSG 1 전송을 시도하는 상태
-                            (UE + i)->active = 1;
-                            // 지금 시점을 전송하는 시점으로 기준
-                            (UE + i)->txTime = time + 1;
-                            (UE + i)->timer = 0;
-                            (UE + i)->msg2Flag = 0;
-                        }
+                for (int i = 0; i < activeCheck; i++) {
+                    if ((UE + i)->active == -1) {
+                        // MSG 1 전송을 시도하는 상태
+                        (UE + i)->active = 1;
+                        // 지금 시점을 전송하는 시점으로 기준
+                        (UE + i)->txTime = time + 1;
+                        (UE + i)->timer = 0;
+                        (UE + i)->msg2Flag = 0;
                     }
                 }
             }
@@ -188,6 +186,7 @@ int main(int argc, char** argv){
         }
         saveSimulationLog(time, nUE, nSuccessUE, failedUEs, preambleTxCount, totalDelay, distribution);
         saveResult(nUE, UE, distribution);
+        // free(UE);
     }
 
     return 0;
@@ -367,7 +366,7 @@ int successUEs(struct UEinfo *user, int nUE){
 
 // Result logging
 void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float totalDelay, int distribution){
-    
+
     float ratioSuccess = (float)nSuccessUE/(float)nUE * 100.0;
     float ratioFailed = (float)failedUEs/(float)nUE;
     float nCollisionPreambles = (float)collisionPreambles/(float)totalPreambleTxop;
@@ -378,8 +377,6 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     printf("Total simulation time: %dms\n", time);
     printf("Success ratio: %.2lf\n", ratioSuccess);
     printf("Number of succeed UEs: %d\n", nSuccessUE);
-    printf("Number of failed UEs: %d\n", failedUEs);
-    printf("Fail ratio: %.4lf\n", ratioFailed);
     printf("Number of collision preambles: %.2lf\n", nCollisionPreambles);
     printf("Average preamble tx count: %.2lf\n", averagePreambleTx);
     printf("Average delay: %.2lf\n", averageDelay);
@@ -405,12 +402,6 @@ void saveSimulationLog(int time, int nUE, int nSuccessUE, int failedUEs, int pre
     fputs(resultBuff, fp);
 
     sprintf(resultBuff, "Number of succeed UEs: %d\n", nSuccessUE);
-    fputs(resultBuff, fp);
-    
-    sprintf(resultBuff, "Number of failed UEs: %d\n", failedUEs);
-    fputs(resultBuff, fp);
-    
-    sprintf(resultBuff, "Fail ratio: %.4lf\n", ratioFailed);
     fputs(resultBuff, fp);
     
     sprintf(resultBuff, "Number of collision preambles: %.2lf\n", nCollisionPreambles);
