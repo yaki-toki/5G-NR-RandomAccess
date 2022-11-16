@@ -42,16 +42,18 @@ int collisionPreambles = 0;
 int totalPreambleTxop = 0;
 
 int main(int argc, char** argv){
+    clock_t start = clock();
     srand(2022);    // Fix random seed
 
     // distribution: 0(Uniform), 1(Beta)
-    int distribution = 1;
+    int distribution = 0;
     
     if(distribution == 0){
         printf("Traffic model: Uniform\n\n");
     }else{
         printf("Traffic model: Beta\n\n");
     }
+
 
     for(int n = 10000; n <= 100000; n+=10000){
         collisionPreambles = 0;
@@ -68,7 +70,7 @@ int main(int argc, char** argv){
         int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
 
         int maxRarWindow = 6;
-        int maxMsg2TxCount = 10;
+        int maxMsg2TxCount = 9;
 
         // UE 정보 초기화
         for(int i = 0; i < nUE; i++){
@@ -203,6 +205,9 @@ int main(int argc, char** argv){
         saveResult(nUE, UE, distribution, nPreamble);
         free(UE);
     }
+
+    clock_t end = clock();
+    printf("Latency: %lf\n", (double)(end - start) / CLOCKS_PER_SEC);
 
     return 0;
 }
@@ -361,6 +366,7 @@ void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int n
         user->preamble = rand() % nPreamble;
         user->msg2Flag = 0;
         user->rarWindow = 0;
+        user->maxRarCounter = 0;
         user->connectionRequest = 0;
         // user->preambleTxCounter++;
     }
