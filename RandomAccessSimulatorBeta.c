@@ -45,6 +45,15 @@ int main(int argc, char** argv){
     clock_t start = clock();
     srand(2022);    // Fix random seed
 
+    int nPreamble = 54;         // Number of preambles
+    int backoffIndicator = 20;  // Number of backoff indicator
+    int nGrantUL = 12;          // Number of UL Grant
+    int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
+
+    int maxRarWindow = 6;
+    int maxMsg2TxCount = 9;
+    int accessTime = 5; // 1, 6ms마다 접근
+
     // distribution: 0(Uniform), 1(Beta)
     int distribution = 0;
     
@@ -53,8 +62,7 @@ int main(int argc, char** argv){
     }else{
         printf("Traffic model: Beta\n\n");
     }
-
-
+    
     for(int n = 10000; n <= 100000; n+=10000){
         collisionPreambles = 0;
         totalPreambleTxop = 0;
@@ -63,14 +71,6 @@ int main(int argc, char** argv){
         struct UEinfo *UE;
         // UE의 수 만큼 사용할 메모리 선언
         UE = (struct UEinfo *) calloc(nUE, sizeof(struct UEinfo));
-
-        int nPreamble = 54;         // Number of preambles
-        int backoffIndicator = 20;  // Number of backoff indicator
-        int nGrantUL = 12;          // Number of UL Grant
-        int grantCheck;             // 한 time에서 부여된 UL grant의 수를 확인하는 변수
-
-        int maxRarWindow = 6;
-        int maxMsg2TxCount = 9;
 
         // UE 정보 초기화
         for(int i = 0; i < nUE; i++){
@@ -82,7 +82,7 @@ int main(int argc, char** argv){
 
         int nAccessUE;      // Uniform distribution에서 사용하는 변수
 
-        int accessTime = 5; // 1, 6ms마다 접근
+        
         if(distribution == 0){
             // Beta distribution Max time: 60s
             maxTime = 60000;    // second to millisecond
