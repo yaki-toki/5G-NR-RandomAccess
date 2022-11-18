@@ -55,7 +55,7 @@ int main(int argc, char** argv){
     int accessTime = 5; // 1, 6ms마다 접근
 
     // distribution: 0(Uniform), 1(Beta)
-    int distribution = 0;
+    int distribution = 1;
     
     if(distribution == 0){
         printf("Traffic model: Uniform\n\n");
