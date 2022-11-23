@@ -49,7 +49,7 @@ int totalPreambleTxop = 0;
 int main(int argc, char **argv){
     int randomSeed;
 
-    int nPreamble = 54;        // Number of preambles
+    int nPreamble = 80;        // Number of preambles
     int backoffIndicator = 20; // Number of backoff indicator
     int nGrantUL = 12;         // Number of UL Grant
     int grantCheck;            // 한 time에서 부여된 UL grant의 수를 확인하는 변수
