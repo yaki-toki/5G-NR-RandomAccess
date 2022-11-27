@@ -25,6 +25,9 @@ struct UEinfo
     int nowBackoff;        // Backoff counter
     int firstTxTime;
     int secondTxTime;
+    
+    // using for NOMA
+    int rampingPower;
 };
 
 void initialUE(struct UEinfo *user, int id);
