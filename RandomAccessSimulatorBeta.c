@@ -450,9 +450,9 @@ void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUE
     char fileNameResult[500];
 
     if (distribution == 0){
-        sprintf(fileNameResult, "./Uniform_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResult, "./BasicUniformSimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }else{
-        sprintf(fileNameResult, "./Beta_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResult, "./BasicBetaSimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }
 
     fp = fopen(fileNameResult, "w+");
@@ -488,9 +488,9 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
     char logBuff[1000];
     char fileNameResultLog[500];
     if (distribution == 0){
-        sprintf(fileNameResultLog, "./Uniform_SimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
+        sprintf(fileNameResultLog, "./BasicUniformSimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
     }else{
-        sprintf(fileNameResultLog, "./Beta_SimulationResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResultLog, "./BasicBetaSimulationResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
     }
 
     fp_l = fopen(fileNameResultLog, "w+");

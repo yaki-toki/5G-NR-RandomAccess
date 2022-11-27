@@ -493,7 +493,7 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
     if (distribution == 0){
         sprintf(fileNameResultLog, "./Uniform_SimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
     }else{
-        sprintf(fileNameResultLog, "./Beta_SimulationResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResultLog, "./NomaBeta/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
     }
 
     fp_l = fopen(fileNameResultLog, "w+");
