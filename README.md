@@ -7,8 +7,8 @@
 
 ### You should create a folder in the same path as below before executing the code.
 ~~~bash
-mkdir ./Uniform_SimulationResults
-mkdir ./Beta_SimulationResults
+mkdir ./BasicUniformSimulationResults
+mkdir ./BasicBetaSimulationResults
 ~~~
 
 #### Simulation parameters:
