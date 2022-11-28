@@ -28,6 +28,10 @@ struct UEinfo
     
     // using for NOMA
     int rampingPower;
+    float xCoordinate;
+    float yCoordinate;
+    float distance;
+    float angle;
 };
 
 void initialUE(struct UEinfo *user, int id);
