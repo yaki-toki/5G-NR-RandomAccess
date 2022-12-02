@@ -27,11 +27,11 @@ struct UEinfo
     int secondTxTime;
     
     // using for NOMA
-    int rampingPower;
-    float xCoordinate;
-    float yCoordinate;
-    float distance;
-    float angle;
+    int rampingPower;       // Power 증가 level
+    float xCoordinate;      // UE의 x 좌표
+    float yCoordinate;      // UE의 y 좌표
+    float distance;         // BS -- UE의 거리
+    float pathLoss;         // BS -- UE의 pathloss
 };
 
 void initialUE(struct UEinfo *user, int id);
@@ -51,7 +51,7 @@ int totalPreambleTxop = 0;
 int main(int argc, char **argv){
     int randomSeed;
 
-    int nPreamble = 80;        // Number of preambles
+    int nPreamble = 54;        // Number of preambles
     int backoffIndicator = 20; // Number of backoff indicator
     int nGrantUL = 12;         // Number of UL Grant
     int grantCheck;            // 한 time에서 부여된 UL grant의 수를 확인하는 변수
@@ -59,6 +59,8 @@ int main(int argc, char **argv){
     int maxRarWindow = 6;
     int maxMsg2TxCount = 9;
     int accessTime = 5; // 1, 6ms마다 접근
+
+    float cellRange = 400;
 
     // distribution: 0(Uniform), 1(Beta)
     int distribution = 1;
@@ -149,6 +151,8 @@ int main(int argc, char **argv){
                             (UE + i)->timer = 0;
                             (UE + i)->msg2Flag = 0;
                             (UE + i)->firstTxTime = time + 1;
+                            (UE+i)->xCoordinate = ((float)rand()/(float)(RAND_MAX)) * cellRange;
+                            (UE+i)->yCoordinate = ((float)rand()/(float)(RAND_MAX)) * cellRange;
                         }
                     }
                 }
