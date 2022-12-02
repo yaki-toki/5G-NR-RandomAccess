@@ -52,4 +52,4 @@ mkdir ./BasicBetaSimulationResults
 
 ### Simulation results based on the number of retransmissions
 
-![Simulation results based on the number of retransmissions](./assets/Simulation results based on the number of retransmissions.png)
+![Simulation results based on the number of retransmissions](./assets/SimulationResultsBasedOnTheNumberOfRetransmissions.png)
