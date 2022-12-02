@@ -1,8 +1,6 @@
 # RandomAccess
 ## 5G NR random access procedure simulator
 
-~~Now working code is *"RandomAccessSimulator.c"* file.~~
-
 ### Finally simulator: *RandomAccessSimulatorBeta.c*
 
 ### You should create a folder in the same path as below before executing the code.
@@ -10,6 +8,10 @@
 mkdir ./BasicUniformSimulationResults
 mkdir ./BasicBetaSimulationResults
 ~~~
+
+### Simulation Environment Define
+
+![Simulation Environment](./assets/SimulationEnvironmentDefine.png)
 
 #### Simulation parameters:
 - Default parameter:
@@ -47,3 +49,7 @@ mkdir ./BasicBetaSimulationResults
 | Number of successful devices |10,000| 	17,890| 	18,285| 	18,501| 	18,649| 	18,772| 	18,862| 	18,939| 	18,920| 	19,011| 
 | Number of preamble tx        |3.541|	22.279|	23.34|	24.052|	24.342|	24.671|	24.631|	24.718|	25.028|	25.22|
 | Access delay (ms)            |58.844|	347.504|	363.314|	374.048|	379.32|	384.342|	383.852|	385.134|	389.256|	392.61|
+
+### Simulation results based on the number of retransmissions
+
+![Simulation results based on the number of retransmissions](./assets/Simulation results based on the number of retransmissions.png)
