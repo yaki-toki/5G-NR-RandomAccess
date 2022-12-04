@@ -30,11 +30,13 @@ struct UEinfo
     int rampingPower;       // Power 증가 level
     float xCoordinate;      // UE의 x 좌표
     float yCoordinate;      // UE의 y 좌표
+    float angle;            // BS -- UE의 각도
     float distance;         // BS -- UE의 거리
     float pathLoss;         // BS -- UE의 pathloss
 };
 
 void initialUE(struct UEinfo *user, int id);
+void activateUEs(struct UEinfo *user, int time, float cellRange, float hBS, float hUT);
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int accessTime, int maxRarWindow, int maxMsg2TxCount);
 void preambleCollision(struct UEinfo *user, struct UEinfo *UEs, int nUE, int checkPreamble, int nPreamble, int time, int backoff, int maxRarWindow, int *grantCheck, int nGrantUL);
 void requestResourceAllocation(struct UEinfo *user, int time, int backoff, int nPreamble);
@@ -43,6 +45,7 @@ int successUEs(struct UEinfo *user, int nUE);
 
 void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float totalDelay, int distribution, int nPreamble, double layency);
 void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPreamble);
+void pointResults(struct UEinfo *UE, int nUE);
 float beta_dist(float a, float b, float x);
 
 int collisionPreambles = 0;
@@ -60,7 +63,9 @@ int main(int argc, char **argv){
     int maxMsg2TxCount = 9;
     int accessTime = 5; // 1, 6ms마다 접근
 
-    float cellRange = 400;
+    float cellRange = 400;      // 400m
+    float hBS = 10.0;           // height of BS from ground
+    float hUT = 1.8;            // height of UE from ground
 
     // distribution: 0(Uniform), 1(Beta)
     int distribution = 1;
@@ -128,7 +133,6 @@ int main(int argc, char **argv){
                 }
                 // 5 ms마다 UE 접근
                 if (time % accessTime == 0 && activeCheck != nUE){
-                    // printf("%d\n", activeCheck);
                     if (distribution == 0){
                         activeCheck += nAccessUE;
                     }else{
@@ -138,21 +142,13 @@ int main(int argc, char **argv){
                         activeCheck += accessUEs;
                     }
                     
-                    if (activeCheck >= nUE){
-                        activeCheck = nUE;
-                    }
+                    // if (activeCheck >= nUE){
+                    //     activeCheck = nUE;
+                    // }
 
                     for (int i = 0; i < activeCheck; i++){
                         if ((UE + i)->active == -1){
-                            // MSG 1 전송을 시도하는 상태
-                            (UE + i)->active = 1;
-                            // 지금 시점을 전송하는 시점으로 기준
-                            (UE + i)->txTime = time + 1;
-                            (UE + i)->timer = 0;
-                            (UE + i)->msg2Flag = 0;
-                            (UE + i)->firstTxTime = time + 1;
-                            (UE+i)->xCoordinate = ((float)rand()/(float)(RAND_MAX)) * cellRange;
-                            (UE+i)->yCoordinate = ((float)rand()/(float)(RAND_MAX)) * cellRange;
+                            activateUEs((UE + i), time, cellRange, hBS, hUT);
                         }
                     }
                 }
@@ -218,6 +214,7 @@ int main(int argc, char **argv){
 
             saveSimulationLog(randomSeed, time, nUE, nSuccessUE, failedUEs, preambleTxCount, totalDelay, distribution, nPreamble, (double)(end - start) / CLOCKS_PER_SEC);
             // saveResult(randomSeed, nUE, UE, distribution, nPreamble);
+            pointResults(UE, nUE);
             free(UE);
         }
 
@@ -235,6 +232,22 @@ void initialUE(struct UEinfo *user, int id){
     user->active = -1;
     user->txTime = -1;
     user->preamble = -1;
+}
+
+void activateUEs(struct UEinfo *user, int time, float cellRange, float hBS, float hUT){
+    // MSG 1 전송을 시도하는 상태
+    user->active = 1;
+    // 지금 시점을 전송하는 시점으로 기준
+    user->txTime = time + 1;
+    user->timer = 0;
+    user->msg2Flag = 0;
+    user->firstTxTime = time + 1;
+    float theta = (float)rand()/(float)(RAND_MAX) * 2 * 3.14;
+    float r = (((float)rand()/(float)(RAND_MAX)) * cellRange/2);
+    user->angle = theta;
+    user->xCoordinate = r * cos(theta);
+    user->yCoordinate = r * sin(theta);
+    user->distance = sqrt(pow(r, 2)+pow(hBS - hUT, 2));
 }
 
 void selectPreamble(struct UEinfo *user, int nPreamble, int time, int backoff, int accessTime, int maxRarWindow, int maxMsg2TxCount){
@@ -463,7 +476,7 @@ void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUE
     if (distribution == 0){
         sprintf(fileNameResult, "./Uniform_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }else{
-        sprintf(fileNameResult, "./Beta_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResult, "./NomaBetaResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }
 
     fp = fopen(fileNameResult, "w+");
@@ -501,7 +514,7 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
     if (distribution == 0){
         sprintf(fileNameResultLog, "./Uniform_SimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
     }else{
-        sprintf(fileNameResultLog, "./NomaBeta/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResultLog, "./NomaBetaResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
     }
 
     fp_l = fopen(fileNameResultLog, "w+");
@@ -521,6 +534,20 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
         fputs(logBuff, fp_l);
     }
 
+    fclose(fp_l);
+}
+void pointResults(struct UEinfo *UE, int nUE){
+    FILE *fp_l;
+    char logBuff[1000];
+    char fileNameResultLog[500];
+
+    sprintf(fileNameResultLog, "./NomaBetaResults/%d_point_Logs.txt", nUE);
+    fp_l = fopen(fileNameResultLog, "w+");
+
+    for(int i = 0; i < nUE; i++){
+        sprintf(logBuff, "%lf,%lf\n",(UE+i)->xCoordinate, (UE+i)->yCoordinate);
+        fputs(logBuff, fp_l);
+    }
     fclose(fp_l);
 }
 
