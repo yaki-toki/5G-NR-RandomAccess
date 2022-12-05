@@ -53,7 +53,7 @@ int totalPreambleTxop = 0;
 
 int main(int argc, char *argv[]){
     int randomSeed;
-    int randomMax = 10;
+    int randomMax = 1;
     int nPreamble = 54;        // Number of preambles
     int backoffIndicator = 20; // Number of backoff indicator
     int nGrantUL = 12;         // Number of UL Grant
@@ -67,6 +67,9 @@ int main(int argc, char *argv[]){
     float hBS = 10.0;       // height of BS from ground
     float hUT = 1.8;        // height of UE from ground
 
+    // distribution: 0(Uniform), 1(Beta)
+    int distribution = 1;
+
     if (argc > 1){
         int keywords = 0;
         for(int i = 1; i < argc; i+=2){
@@ -76,6 +79,12 @@ int main(int argc, char *argv[]){
                     exit(-1);
                 }
                 randomMax = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--distribution") == 0 || strcmp(argv[i], "-d") == 0){
+                if(atoi(argv[i+1]) != 1 && atoi(argv[i+1]) != 0){
+                    printf("Traffic model just choose 1 or 2");
+                    exit(-1);
+                }
+                distribution = atoi(argv[i+1]);
             }else if(strcmp(argv[i], "--preambles") == 0 || strcmp(argv[i], "-p") == 0){
                 if(atoi(argv[i+1]) < 1){
                     printf("Number of preamble must be greater than zero.");
@@ -131,35 +140,73 @@ int main(int argc, char *argv[]){
                 }
                 hUT = atof(argv[i+1]);
             }else{
-                printf("--times     -t      : Simulation times\n");
-                printf("                      Simulation count must be greater than zero.\n");
-                printf("--preambles -p      : Number of preambles\n");
-                printf("                      Number of preamble must be greater than zero.\n");
-                printf("--backoff   -b      : Backoff indicator\n");
-                printf("                      Backoff indicator must be greater than zero.\n");
-                printf("--grant     -g      : The number of Up Link Grant per RAR\n");
-                printf("                      The number of Up Link Grant per RAR must be greater than zero.\n");
-                printf("--rarCount  -rc     : RAR window size\n");
-                printf("                      The maximum RAR window size must be greater than zero.\n");
-                printf("--maxRar    -mrc    : Maximum retransmission\n");
-                printf("                      Maximum retransmissions must be greater than zero.\n");
-                printf("--subframe  -sb     : Subframe units\n");
-                printf("                      The size of the subframe must be at least 5.\n");
-                printf("--cell      -c      : Cell radius Size\n");
-                printf("                      The radius of the cell is entered in diameter units and must be greater than 400m.\n");
-                printf("--hbs       -bs     : Height of BS from ground\n");
-                printf("                      The height of the BS must be between 10m and 20m.\n");
-                printf("--hut       -ut     : Height of UE from ground\n");
-                printf("                      The height of the UE must be between 1.5m and 22.5m.\n");
+                printf("--times         -t : Simulation times (int)\n");
+                printf("                     Simulation count must be greater than zero.\n");
+                printf("                     Default 1\n\n");
+                
+                printf("--distribution  -d : Traffic model (0 or 1)\n");
+                printf("                     1: traffic model 1 (Uniform distribution)\n");
+                printf("                     2: traffic model 2 (Beta distribution)\n\n");
+
+                printf("--preambles     -p : Number of preambles (int)\n");
+                printf("                     Number of preamble must be greater than zero.\n");
+                printf("                     Default 54\n\n");
+                
+                printf("--backoff       -b : Backoff indicator (int)\n");
+                printf("                     Backoff indicator must be greater than zero.\n");
+                printf("                     Default 20\n\n");
+
+                printf("--grant         -g : The number of Up Link Grant per RAR (int)\n");
+                printf("                     The number of Up Link Grant per RAR must be greater than zero.\n");
+                printf("                     Default 12\n\n");
+
+                printf("--rarCount      -r : RAR window size (int)\n");
+                printf("                     The maximum RAR window size must be greater than zero.\n");
+                printf("                     Default 5\n\n");
+
+                printf("--maxRar        -m : Maximum retransmission (int)\n");
+                printf("                     Maximum retransmissions must be greater than zero.\n");
+                printf("                     Default 10\n\n");
+
+                printf("--subframe      -s : Subframe units (int)\n");
+                printf("                     The size of the subframe must be at least 5. (float)\n");
+                printf("                     Default 5\n\n");
+
+                printf("--cell          -c : Cell radius Size\n");
+                printf("                     The radius of the cell is entered in diameter units and must be greater than 400m.\n");
+                printf("                     Default 400.0\n\n");
+
+                printf("--hbs           -b : Height of BS from ground (float)\n");
+                printf("                     The height of the BS must be between 10m and 20m.\n");
+                printf("                     Default 10.0\n\n");
+                
+                printf("--hut           -u : Height of UE from ground (float)\n");
+                printf("                     The height of the UE must be between 1.5m and 22.5m.\n");
+                printf("                     Default 1.8\n\n");
                 exit(-1);
             }
         }
     }
 
-    // distribution: 0(Uniform), 1(Beta)
-    int distribution = 1;
+    /*
+    int randomMax = 1;
+    int nPreamble = 54;        // Number of preambles
+    int backoffIndicator = 20; // Number of backoff indicator
+    int nGrantUL = 12;         // Number of UL Grant
+    int grantCheck;            // 한 time에서 부여된 UL grant의 수를 확인하는 변수
 
-    if (distribution == 0){
+    int maxRarWindow = 6;
+    int maxMsg2TxCount = 9;
+    int accessTime = 5; // 1, 6ms마다 접근
+
+    float cellRange = 400;  // 400m
+    float hBS = 10.0;       // height of BS from ground
+    float hUT = 1.8;        // height of UE from ground
+    */
+
+    
+
+    if (distribution == 1){
         printf("Traffic model: Uniform\n\n");
     }
     else{
@@ -190,7 +237,7 @@ int main(int argc, char *argv[]){
 
             int nAccessUE; // Uniform distribution에서 사용하는 변수
 
-            if (distribution == 0){
+            if (distribution == 1){
                 // Beta distribution Max time: 60s
                 maxTime = 60000; // second to millisecond
 
@@ -222,7 +269,7 @@ int main(int argc, char *argv[]){
                 }
                 // 5 ms마다 UE 접근
                 if (time % accessTime == 0 && activeCheck != nUE){
-                    if (distribution == 0){
+                    if (distribution == 1){
                         activeCheck += nAccessUE;
                     }else{
                         // Beta(3, 4)를 따르는 분포
@@ -294,7 +341,7 @@ int main(int argc, char *argv[]){
 
             // 결과 출력
             printf("-------- %05d Result ---------\n", activeCheck);
-            if (distribution == 0){
+            if (distribution == 1){
                 printf("Number of RA try UEs per Subframe: %d\n", nAccessUE);
             }
 
@@ -562,7 +609,7 @@ void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUE
     char resultBuff[1000];
     char fileNameResult[500];
 
-    if (distribution == 0){
+    if (distribution == 1){
         sprintf(fileNameResult, "./Uniform_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }else{
         sprintf(fileNameResult, "./NomaBetaResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
@@ -600,7 +647,7 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
     FILE *fp_l;
     char logBuff[1000];
     char fileNameResultLog[500];
-    if (distribution == 0){
+    if (distribution == 1){
         sprintf(fileNameResultLog, "./Uniform_SimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
     }else{
         sprintf(fileNameResultLog, "./NomaBetaResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
