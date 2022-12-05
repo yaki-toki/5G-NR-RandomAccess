@@ -45,7 +45,7 @@ int successUEs(struct UEinfo *user, int nUE);
 
 void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUEs, int preambleTxCount, float totalDelay, int distribution, int nPreamble, double layency);
 void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPreamble);
-void pointResults(struct UEinfo *UE, int nUE);
+void pointResults(struct UEinfo *UE, int nUE, int distribution);
 float beta_dist(float a, float b, float x);
 
 int collisionPreambles = 0;
@@ -143,8 +143,8 @@ int main(int argc, char *argv[]){
                 printf("--times         -t : Simulation times (int)\n");
                 printf("                     Simulation count must be greater than zero.\n");
                 printf("                     Default 1\n\n");
-                
-                printf("--distribution  -d : Traffic model (0 or 1)\n");
+
+                printf("--distribution  -d : Traffic model (1 or 2)\n");
                 printf("                     1: traffic model 1 (Uniform distribution)\n");
                 printf("                     2: traffic model 2 (Beta distribution)\n\n");
 
@@ -187,24 +187,6 @@ int main(int argc, char *argv[]){
             }
         }
     }
-
-    /*
-    int randomMax = 1;
-    int nPreamble = 54;        // Number of preambles
-    int backoffIndicator = 20; // Number of backoff indicator
-    int nGrantUL = 12;         // Number of UL Grant
-    int grantCheck;            // 한 time에서 부여된 UL grant의 수를 확인하는 변수
-
-    int maxRarWindow = 6;
-    int maxMsg2TxCount = 9;
-    int accessTime = 5; // 1, 6ms마다 접근
-
-    float cellRange = 400;  // 400m
-    float hBS = 10.0;       // height of BS from ground
-    float hUT = 1.8;        // height of UE from ground
-    */
-
-    
 
     if (distribution == 1){
         printf("Traffic model: Uniform\n\n");
@@ -278,9 +260,9 @@ int main(int argc, char *argv[]){
                         activeCheck += accessUEs;
                     }
                     
-                    // if (activeCheck >= nUE){
-                    //     activeCheck = nUE;
-                    // }
+                    if (activeCheck >= nUE){
+                        activeCheck = nUE;
+                    }
 
                     for (int i = 0; i < activeCheck; i++){
                         if ((UE + i)->active == -1){
@@ -350,14 +332,10 @@ int main(int argc, char *argv[]){
 
             saveSimulationLog(randomSeed, time, nUE, nSuccessUE, failedUEs, preambleTxCount, totalDelay, distribution, nPreamble, (double)(end - start) / CLOCKS_PER_SEC);
             // saveResult(randomSeed, nUE, UE, distribution, nPreamble);
-            pointResults(UE, nUE);
+            pointResults(UE, nUE, distribution);
             free(UE);
         }
-
-        
-
     }
-
     return 0;
 }
 
@@ -610,7 +588,7 @@ void saveSimulationLog(int seed, int time, int nUE, int nSuccessUE, int failedUE
     char fileNameResult[500];
 
     if (distribution == 1){
-        sprintf(fileNameResult, "./Uniform_SimulationResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
+        sprintf(fileNameResult, "./NomaUniformResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }else{
         sprintf(fileNameResult, "./NomaBetaResults/%d_%d_%d_Results.txt", seed, nPreamble, nUE);
     }
@@ -648,7 +626,7 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
     char logBuff[1000];
     char fileNameResultLog[500];
     if (distribution == 1){
-        sprintf(fileNameResultLog, "./Uniform_SimulationResults/%d_Exclude_msg2_failures_UE%05d_Logs.txt", nPreamble, nUE);
+        sprintf(fileNameResultLog, "./NomaUniformResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
     }else{
         sprintf(fileNameResultLog, "./NomaBetaResults/%d_%d_UE%05d_Logs.txt", seed, nPreamble, nUE);
     }
@@ -672,12 +650,15 @@ void saveResult(int seed, int nUE, struct UEinfo *UE, int distribution, int nPre
 
     fclose(fp_l);
 }
-void pointResults(struct UEinfo *UE, int nUE){
+void pointResults(struct UEinfo *UE, int nUE, int distribution){
     FILE *fp_l;
     char logBuff[1000];
     char fileNameResultLog[500];
-
-    sprintf(fileNameResultLog, "./NomaBetaResults/%d_point_Logs.txt", nUE);
+    if (distribution == 1){
+        sprintf(fileNameResultLog, "./NomaUniformResults/%d_point_Logs.txt", nUE);
+    }else{
+        sprintf(fileNameResultLog, "./NomaBetaResults/%d_point_Logs.txt", nUE);
+    }
     fp_l = fopen(fileNameResultLog, "w+");
 
     for(int i = 0; i < nUE; i++){
