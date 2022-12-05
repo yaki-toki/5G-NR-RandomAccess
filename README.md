@@ -24,6 +24,68 @@ mkdir ./BasicBetaSimulationResults
     - Backof indicator: 20 ms (Random backoff)
     - Number of UL grant for one RAR: 12, ...
 
+## Run code
+
+### Code compile
+
+~~~bash
+gcc RandomAccessWithNOMA.c -o Simulator
+~~~
+
+### Run code
+
+~~~bash
+./Simulator
+~~~
+
+### Run code parameters
+
+~~~
+--times         -t : Simulation times (int)
+                     Simulation count must be greater than zero.
+                     Default 1
+
+--distribution  -d : Traffic model (1 or 2)
+                     1: traffic model 1 (Uniform distribution)
+                     2: traffic model 2 (Beta distribution)
+
+--preambles     -p : Number of preambles (int)
+                     Number of preamble must be greater than zero.
+                     Default 54
+
+--backoff       -b : Backoff indicator (int)
+                     Backoff indicator must be greater than zero.
+                     Default 20
+
+--grant         -g : The number of Up Link Grant per RAR (int)
+                     The number of Up Link Grant per RAR must be greater than zero.
+                     Default 12
+
+--rarCount      -r : RAR window size (int)
+                     The maximum RAR window size must be greater than zero.
+                     Default 5
+
+--maxRar        -m : Maximum retransmission (int)
+                     Maximum retransmissions must be greater than zero.
+                     Default 10
+
+--subframe      -s : Subframe units (int)
+                     The size of the subframe must be at least 5. (float)
+                     Default 5
+
+--cell          -c : Cell radius Size
+                     The radius of the cell is entered in diameter units and must be greater than 400m.
+                     Default 400.0
+
+--hbs           -b : Height of BS from ground (float)
+                     The height of the BS must be between 10m and 20m.
+                     Default 10.0
+
+--hut           -u : Height of UE from ground (float)
+                     The height of the UE must be between 1.5m and 22.5m.
+                     Default 1.8
+~~~
+
 ## Simulation results
 ### Simulation results by Number of retransmission limit
 #### Retransmission limit: 10
