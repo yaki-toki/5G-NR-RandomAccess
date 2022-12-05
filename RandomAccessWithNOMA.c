@@ -51,9 +51,9 @@ float beta_dist(float a, float b, float x);
 int collisionPreambles = 0;
 int totalPreambleTxop = 0;
 
-int main(int argc, char **argv){
+int main(int argc, char *argv[]){
     int randomSeed;
-
+    int randomMax = 10;
     int nPreamble = 54;        // Number of preambles
     int backoffIndicator = 20; // Number of backoff indicator
     int nGrantUL = 12;         // Number of UL Grant
@@ -63,9 +63,98 @@ int main(int argc, char **argv){
     int maxMsg2TxCount = 9;
     int accessTime = 5; // 1, 6ms마다 접근
 
-    float cellRange = 400;      // 400m
-    float hBS = 10.0;           // height of BS from ground
-    float hUT = 1.8;            // height of UE from ground
+    float cellRange = 400;  // 400m
+    float hBS = 10.0;       // height of BS from ground
+    float hUT = 1.8;        // height of UE from ground
+
+    if (argc > 1){
+        int keywords = 0;
+        for(int i = 1; i < argc; i+=2){
+            if(strcmp(argv[i], "--times") == 0 || strcmp(argv[i], "-t") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("Simulation count must be greater than zero.");
+                    exit(-1);
+                }
+                randomMax = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--preambles") == 0 || strcmp(argv[i], "-p") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("Number of preamble must be greater than zero.");
+                    exit(-1);
+                }
+                nPreamble = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--backoff") == 0 || strcmp(argv[i], "-b") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("Backoff indicator must be greater than zero.");
+                    exit(-1);
+                }
+                backoffIndicator = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--grant") == 0 || strcmp(argv[i], "-g") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("The number of Up Link Grant per RAR must be greater than zero.");
+                    exit(-1);
+                }
+                nGrantUL = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--rarCount") == 0 || strcmp(argv[i], "-rc") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("The maximum RAR window size must be greater than zero.");
+                    exit(-1);
+                }
+                maxRarWindow = atoi(argv[i+1]) + 1;
+            }else if(strcmp(argv[i], "--maxRar") == 0 || strcmp(argv[i], "-mrc") == 0){
+                if(atoi(argv[i+1]) < 1){
+                    printf("Maximum retransmissions must be greater than zero.");
+                    exit(-1);
+                }
+                maxMsg2TxCount = atoi(argv[i+1]) - 1;
+            }else if(strcmp(argv[i], "--subframe") == 0 || strcmp(argv[i], "-s") == 0){
+                if(atoi(argv[i+1]) < 5){
+                    printf("The size of the subframe must be at least 5.");
+                    exit(-1);
+                }
+                accessTime = atoi(argv[i+1]);
+            }else if(strcmp(argv[i], "--cell") == 0 || strcmp(argv[i], "-c") == 0){
+                if(atof(argv[i+1]) < 400.0){
+                    printf("The radius of the cell is entered in diameter units and must be greater than 400m.");
+                    exit(-1);
+                }
+                cellRange = atof(argv[i+1]);
+            }else if(strcmp(argv[i], "--hbs") == 0 || strcmp(argv[i], "-bs") == 0){
+                if(atof(argv[i+1]) < 10.0 || atof(argv[i+1]) > 20.0){
+                    printf("The height of the BS must be between 10m and 20m.");
+                    exit(-1);
+                }
+                hBS = atof(argv[i+1]);
+            }else if(strcmp(argv[i], "--hut") == 0 || strcmp(argv[i], "-ut") == 0){
+                if(atof(argv[i+1]) < 1.5 || atof(argv[i+1]) > 22.5){
+                    printf("The height of the UE must be between 1.5m and 22.5m.");
+                    exit(-1);
+                }
+                hUT = atof(argv[i+1]);
+            }else{
+                printf("--times     -t      : Simulation times\n");
+                printf("                      Simulation count must be greater than zero.\n");
+                printf("--preambles -p      : Number of preambles\n");
+                printf("                      Number of preamble must be greater than zero.\n");
+                printf("--backoff   -b      : Backoff indicator\n");
+                printf("                      Backoff indicator must be greater than zero.\n");
+                printf("--grant     -g      : The number of Up Link Grant per RAR\n");
+                printf("                      The number of Up Link Grant per RAR must be greater than zero.\n");
+                printf("--rarCount  -rc     : RAR window size\n");
+                printf("                      The maximum RAR window size must be greater than zero.\n");
+                printf("--maxRar    -mrc    : Maximum retransmission\n");
+                printf("                      Maximum retransmissions must be greater than zero.\n");
+                printf("--subframe  -sb     : Subframe units\n");
+                printf("                      The size of the subframe must be at least 5.\n");
+                printf("--cell      -c      : Cell radius Size\n");
+                printf("                      The radius of the cell is entered in diameter units and must be greater than 400m.\n");
+                printf("--hbs       -bs     : Height of BS from ground\n");
+                printf("                      The height of the BS must be between 10m and 20m.\n");
+                printf("--hut       -ut     : Height of UE from ground\n");
+                printf("                      The height of the UE must be between 1.5m and 22.5m.\n");
+                exit(-1);
+            }
+        }
+    }
 
     // distribution: 0(Uniform), 1(Beta)
     int distribution = 1;
@@ -77,7 +166,7 @@ int main(int argc, char **argv){
         printf("Traffic model: Beta\n\n");
     }
 
-    for (randomSeed = 0; randomSeed < 10; randomSeed++){
+    for (randomSeed = 0; randomSeed < randomMax; randomSeed++){
         clock_t start = clock();
         // randomSeed = 2022;
         srand(randomSeed); // Fix random seed
