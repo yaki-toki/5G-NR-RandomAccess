@@ -4,6 +4,9 @@
 #include <string.h>
 #include <math.h>
 #include <time.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/stat.h>
 
 #define betaF 0.0165
 
@@ -52,6 +55,8 @@ int collisionPreambles = 0;
 int totalPreambleTxop = 0;
 
 int main(int argc, char *argv[]){
+    mkdir("NomaBetaResults", 0755);
+    mkdir("NomaUniformResults", 0755);
     int randomSeed;
     int randomMax = 1;
     int nPreamble = 54;        // Number of preambles
