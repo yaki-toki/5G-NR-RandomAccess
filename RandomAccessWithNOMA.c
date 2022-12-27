@@ -262,6 +262,7 @@ int main(int argc, char *argv[]){
             finalSuccessUEs = 0;
             continueFaliedUEs = 0;
             int *txUEs = NULL;
+            
             for (time = 0; time < maxTime; time++){
                 *txUEs = (int *)malloc(sizeof(int) * nUE);
                 if (time % 5 == 0){
