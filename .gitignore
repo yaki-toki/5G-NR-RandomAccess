@@ -2,3 +2,4 @@
 BasicUniformSimulationResults/*.txt
 BasicBetaSimulationResults/*.txt
 NomaBetaResults/*.txt
+TestResults/*.txt
