@@ -63,7 +63,7 @@ int main(int argc, char **argv){
         printf("Traffic model: Beta\n\n");
     }
 
-    for (randomSeed = 0; randomSeed < 10; randomSeed++){
+    for (randomSeed = 0; randomSeed < 1; randomSeed++){
         clock_t start = clock();
         // randomSeed = 2022;
         srand(randomSeed); // Fix random seed
@@ -206,7 +206,7 @@ int main(int argc, char **argv){
             printf("Latency: %lf\n", (double)(end - start) / CLOCKS_PER_SEC);
 
             saveSimulationLog(randomSeed, time, nUE, nSuccessUE, failedUEs, preambleTxCount, totalDelay, distribution, nPreamble, (double)(end - start) / CLOCKS_PER_SEC);
-            // saveResult(randomSeed, nUE, UE, distribution, nPreamble);
+            saveResult(randomSeed, nUE, UE, distribution, nPreamble);
             free(UE);
         }
 
