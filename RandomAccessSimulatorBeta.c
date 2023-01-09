@@ -158,7 +158,7 @@ int main(int argc, char **argv){
                             }
 
                             // MSG 1 -> MSG 2: Preamble collision detection
-                            if ((UE + i)->active == 1 && (UE + i)->msg2Flag == 0 && (UE + i)->txTime == time){
+                            if ((UE + i)->active == 1 && (UE + i)->msg2Flag == 0 && (UE + i)->txTime == time && (UE + i)->nowBackoff <= 0){
                                 int checkPreambleNumber = (UE + i)->preamble; // 현재의 UE가 선택한 preamble number
                                 preambleCollision(UE + i, UE, nUE, checkPreambleNumber, nPreamble, time, backoffIndicator, maxRarWindow, &grantCheck, nGrantUL);
                             }
