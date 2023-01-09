@@ -97,7 +97,6 @@ void activeUE(UserInfo *user, int time){
 
     float angle = (float)rand()/(float)(RAND_MAX) * 2 * pi;
     
-
     user->angle = angle;
 
     if(user->angle >= 0 && user->angle < ((1./3.)*pi)){
